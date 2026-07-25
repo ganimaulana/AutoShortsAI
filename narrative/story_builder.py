@@ -97,6 +97,10 @@ class StoryBuilder:
 
             )
 
+        stories = self._merge_short_stories(
+            stories
+        )
+
         return stories
 
     # -------------------------------------------------
@@ -182,3 +186,91 @@ class StoryBuilder:
             merged.append(buffer)
 
         return merged
+
+        # -------------------------------------------------
+
+    def _should_start_new_story(
+        self,
+        story: Story,
+        segment: Segment
+    ) -> bool:
+
+        if len(story) == 0:
+            return False
+
+        last = story.segments[-1]
+
+        gap = segment.start - last.end
+
+        if gap > MAX_SILENCE_GAP:
+            return True
+
+        if story.duration >= MAX_STORY_DURATION:
+            return True
+
+        if (
+            story.duration >= TARGET_STORY_DURATION
+            and gap >= 1.0
+        ):
+            return True
+
+        return False
+
+    # -------------------------------------------------
+
+    def _finalize_story(
+        self,
+        story: Story
+    ) -> Story:
+
+        story.segment_ids = [
+
+            s.id
+
+            for s in story.segments
+
+        ]
+
+        story.text_cache = story.text
+
+        return story
+
+    # -------------------------------------------------
+
+    def _merge_short_stories(
+        self,
+        stories: List[Story]
+    ) -> List[Story]:
+
+        if not stories:
+            return stories
+
+        merged = []
+
+        for story in stories:
+
+            if (
+                merged
+                and story.duration < MIN_STORY_DURATION
+            ):
+
+                previous = merged[-1]
+
+                for seg in story.segments:
+                    previous.add_segment(seg)
+
+                previous.segment_ids = [
+
+                    s.id
+
+                    for s in previous.segments
+
+                ]
+
+                previous.text_cache = previous.text
+
+            else:
+
+                merged.append(story)
+
+        return merged       
