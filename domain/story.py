@@ -30,6 +30,12 @@ class Story:
 
     id: int
 
+    start: float = 0.0
+
+    end: float = 0.0
+
+    duration: float = 0.0
+
     # =================================================
     # Content
     # =================================================
@@ -74,26 +80,7 @@ class Story:
     # Properties
     # =================================================
 
-    @property
-    def start(self):
-
-        if not self.segments:
-            return 0
-
-        return self.segments[0].start
-
-    @property
-    def end(self):
-
-        if not self.segments:
-            return 0
-
-        return self.segments[-1].end
-
-    @property
-    def duration(self):
-
-        return self.end - self.start
+    
 
     @property
     def text(self):
@@ -122,9 +109,26 @@ class Story:
 
         self.segments.append(segment)
 
+        if len(self.segments) == 1:
+            self.start = segment.start
+
+        self.end = segment.end
+
+        self.duration = self.end - self.start
+
     def clear(self):
 
         self.segments.clear()
+
+        self.segment_ids.clear()
+
+        self.text_cache = ""
+
+        self.start = 0.0
+
+        self.end = 0.0
+
+        self.duration = 0.0
 
     def __len__(self):
 
