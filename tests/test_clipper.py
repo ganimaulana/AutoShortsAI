@@ -1,44 +1,49 @@
-import sys
+"""
+==================================================
+AutoShortsAI
+Clipper Integration Test
+==================================================
+"""
+
 from pathlib import Path
 
-sys.path.append(
-    str(Path(__file__).resolve().parent.parent)
-)
+from media.clipper import clip_video
 
-from core.clipper import clip_video
 
-# ===========================================
-# Cari project terbaru
-# ===========================================
+def test_clipper():
 
-projects = sorted(
-    Path("projects").iterdir(),
-    key=lambda p: p.stat().st_mtime,
-    reverse=True
-)
+    input_video = Path(
+        "downloads/1.mp4"
+    )
 
-project = projects[0]
+    output_video = Path(
+        "output/test_clip.mp4"
+    )
 
-print("Project :", project.name)
+    assert input_video.exists(), (
+        f"Video tidak ditemukan:\n{input_video}"
+    )
 
-# ===========================================
-# Clip pertama
-# ===========================================
+    result = clip_video(
+        input_video=input_video,
+        output_video=output_video,
+        start=10,
+        end=20,
+    )
 
-clip = clip_video(
+    assert result.exists()
 
-    input_video=project / "original.mp4",
+    print()
 
-    output_video=project / "clips" / "clip001.mp4",
+    print("====================================")
 
-    start=10,
+    print("Clip berhasil dibuat")
 
-    end=30
+    print(result)
 
-)
+    print("====================================")
 
-print()
 
-print("SUCCESS")
+if __name__ == "__main__":
 
-print(clip)
+    test_clipper()

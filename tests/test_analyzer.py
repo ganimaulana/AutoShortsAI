@@ -1,17 +1,30 @@
-from analyzer import analyze_video
+"""
+==========================================
+AutoShortsAI
+Analyzer Test
+==========================================
+"""
 
-url = input("URL : ")
+from core.analyzer import analyze_video
 
-info = analyze_video(url)
 
-print()
+def main():
 
-print("Judul :", info["title"])
+    url = input("URL : ").strip()
 
-print("Channel :", info["channel"])
+    info = analyze_video(url)
 
-print("Views :", info["views"])
+    print("\n========== HASIL ==========")
 
-print("Durasi :", info["duration"])
+    print(f"Judul      : {info['title']}")
+    print(f"Channel    : {info['channel']}")
+    print(f"Views      : {info['views']}")
+    print(f"Durasi     : {info['duration']} detik")
+    print(f"Upload     : {info['upload_date']}")
+    print(f"Resolusi   : {info['resolution']}")
+    print(f"FPS        : {info['fps']}")
+    print(f"Thumbnail  : {info['thumbnail']}")
 
-print("Upload :", info["upload_date"])
+
+if __name__ == "__main__":
+    main()

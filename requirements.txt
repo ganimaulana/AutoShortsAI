@@ -1,0 +1,6 @@
+yt-dlp
+openai-whisper
+ffmpeg-python
+moviepy
+pytest
+pytest-cov
