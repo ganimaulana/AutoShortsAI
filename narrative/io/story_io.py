@@ -9,10 +9,7 @@ Story IO
 ==================================================
 """
 
-from pathlib import Path
-
 from domain import Story
-from domain import Segment
 
 from .base_io import BaseIO
 
@@ -22,81 +19,75 @@ class StoryIO(BaseIO):
     Read / Write Story objects.
     """
 
+    # =================================================
+    # Save
+    # =================================================
+
     @staticmethod
     def save(path, stories):
+        """
+        Save Story list into JSON.
+        """
 
         output = {
-
-            "stories": []
-
+            "stories": [
+                story.to_dict()
+                for story in stories
+            ]
         }
-
-        for story in stories:
-
-            output["stories"].append({
-
-                "id": story.id,
-
-                "start": story.start,
-
-                "end": story.end,
-
-                "duration": story.duration,
-
-                "word_count": story.word_count,
-
-                "score": story.score,
-
-                "title": story.title,
-
-                "topic": story.topic,
-
-                "emotion": story.emotion,
-
-                "summary": story.summary,
-
-                "segments": [
-
-                    s.id for s in story.segments
-
-                ],
-
-                "text": story.text
-
-            })
 
         BaseIO.save_json(
             path,
             output
         )
 
+    # =================================================
+    # Load
+    # =================================================
+
     @staticmethod
     def load(path):
+        """
+        Load Story list from JSON.
+        """
 
         data = BaseIO.load_json(path)
 
         stories = []
 
-        for item in data["stories"]:
+        for item in data.get("stories", []):
 
             story = Story(
 
-                id=item["id"]
+                id=item.get("id", 0)
 
             )
 
-            #
-            # Segment object belum dimuat
-            # karena hanya ID yang disimpan
-            #
+            # -----------------------------------------
+            # Cache
+            # -----------------------------------------
 
-            story.score = item.get(
-                "score",
-                0
+            story.text_cache = item.get(
+                "text",
+                ""
             )
+
+            story.segment_ids = item.get(
+                "segments",
+                []
+            )
+
+            # -----------------------------------------
+            # Metadata
+            # -----------------------------------------
 
             story.title = item.get(
                 "title",
+                ""
+            )
+
+            story.summary = item.get(
+                "summary",
                 ""
             )
 
@@ -110,23 +101,43 @@ class StoryIO(BaseIO):
                 ""
             )
 
-            story.summary = item.get(
-                "summary",
-                ""
-            )
-
-            #
-            # Simpan segment ID sementara
-            #
-
-            story.segment_ids = item.get(
-                "segments",
+            story.tags = item.get(
+                "tags",
                 []
             )
 
-            story.cached_text = item.get(
-                "text",
-                ""
+            # -----------------------------------------
+            # Scores
+            # -----------------------------------------
+
+            story.hook_score = item.get(
+                "hook_score",
+                0.0
+            )
+
+            story.conflict_score = item.get(
+                "conflict_score",
+                0.0
+            )
+
+            story.ending_score = item.get(
+                "ending_score",
+                0.0
+            )
+
+            story.engagement_score = item.get(
+                "engagement_score",
+                0.0
+            )
+
+            story.clip_priority = item.get(
+                "clip_priority",
+                0.0
+            )
+
+            story.score = item.get(
+                "score",
+                0.0
             )
 
             stories.append(

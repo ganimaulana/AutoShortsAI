@@ -5,50 +5,96 @@ Powered by Naraseta
 
 AutoShortsAI
 
-Story Rules
+Story Ranking Rules
 ==================================================
 """
 
+# ==================================================
+# Hook
+# ==================================================
 
-class StoryRules:
-    """
-    Rule collection for Story Builder.
-    """
+HOOK_WORDS = [
 
-    # ----------------------------------------------
+    "ternyata",
+    "fakta",
+    "rahasia",
+    "kenapa",
+    "mengapa",
+    "bagaimana",
+    "jangan",
+    "awas",
+    "hati-hati",
+    "baru tahu",
+    "yang tidak",
+    "ini alasan",
+    "inilah",
+]
 
-    TRANSITION_WORDS = {
+# ==================================================
+# Conflict
+# ==================================================
 
-        "nah",
+CONFLICT_WORDS = [
 
-        "jadi",
+    "konflik",
+    "perang",
+    "krisis",
+    "masalah",
+    "bertengkar",
+    "melawan",
+    "serangan",
+    "gagal",
+    "kalah",
+    "jatuh",
+    "ditangkap",
+    "dihukum",
+]
 
-        "oke",
+# ==================================================
+# Emotion
+# ==================================================
 
-        "kemudian",
+EMOTION_WORDS = [
 
-        "selanjutnya",
+    "marah",
+    "sedih",
+    "bahagia",
+    "menangis",
+    "kecewa",
+    "takut",
+    "terkejut",
+    "bangga",
+    "kaget",
+    "luar biasa",
+]
 
-        "berikutnya",
+# ==================================================
+# Ending
+# ==================================================
 
-        "lalu",
+ENDING_WORDS = [
 
-        "next",
+    "akhirnya",
+    "kesimpulannya",
+    "jadi",
+    "oleh karena itu",
+    "itulah",
+    "maka",
+    "pelajarannya",
+]
 
-        "sekarang",
+# ==================================================
+# Engagement
+# ==================================================
 
-        "baik"
+ENGAGEMENT_WORDS = [
 
-    }
-
-    # ----------------------------------------------
-
-    MIN_SEGMENT_WORDS = 6
-
-    MIN_STORY_DURATION = 20
-
-    TARGET_STORY_DURATION = 35
-
-    MAX_STORY_DURATION = 60
-
-    MAX_SILENCE_GAP = 3.0
+    "anda",
+    "kamu",
+    "pernah",
+    "bayangkan",
+    "coba",
+    "mengapa",
+    "kenapa",
+    "?",
+]
