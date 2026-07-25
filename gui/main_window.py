@@ -1,3 +1,4 @@
+from pathlib import Path
 from PIL import Image
 from urllib.request import urlretrieve
 import threading
@@ -359,13 +360,23 @@ class MainWindow(ctk.CTk):
 
         try:
 
-            download_video(url)
+            project = Path("temp/gui_project")
+
+            video = download_video(
+
+            url=url,
+
+            output_dir=project
+
+    )
 
             self.progress.set(1)
 
             self.status.configure(
-                text="Download Complete ✅"
-            )
+
+            text=f"Download Complete\n{video}"
+
+    )
 
         except Exception as e:
 
@@ -400,6 +411,18 @@ class MainWindow(ctk.CTk):
     # RUN
     # ======================================================
 
+    
     def run(self):
 
-        self.mainloop() 
+        self.mainloop()
+
+
+# ======================================================
+# ENTRY POINT
+# ======================================================
+
+if __name__ == "__main__":
+
+    app = MainWindow()
+
+    app.run()
