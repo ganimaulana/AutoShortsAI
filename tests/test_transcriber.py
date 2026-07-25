@@ -1,22 +1,50 @@
-import sys
-from pathlib import Path
+"""
+==================================================
+AutoShortsAI
+Transcriber Integration Test
+==================================================
+"""
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+from pathlib import Path
 
 from core.transcriber import transcribe_video
 
-hasil = transcribe_video(
-    r"downloads\'Trouble Is A Friend' Live Session.mp4"
-)
 
-print()
+def test_transcriber():
 
-print("Language :", hasil["language"])
+    project = Path("temp/test_project")
 
-print("Segments :", hasil["segments"])
+    video = project / "original.mp4"
 
-print()
+    assert video.exists(), (
+        f"Video tidak ditemukan:\n{video}"
+    )
 
-print("Transcript :", hasil["transcript"])
+    result = transcribe_video(
 
-print("JSON :", hasil["json"])
+        video_path=video,
+
+        project_path=project,
+
+        language=None
+
+    )
+
+    assert result["transcript_file"].exists()
+
+    assert result["json_file"].exists()
+
+    print()
+
+    print("==========================")
+
+    print("Transkripsi berhasil")
+
+    print(result)
+
+    print("==========================")
+
+
+if __name__ == "__main__":
+
+    test_transcriber()

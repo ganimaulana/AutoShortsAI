@@ -1,32 +1,41 @@
-import sys
+"""
+==================================================
+AutoShortsAI
+Highlight Detector Test
+==================================================
+"""
+
 from pathlib import Path
 
-sys.path.append(
-    str(Path(__file__).resolve().parent.parent)
-)
+from narrative.highlight_detector import detect_highlights
 
-from core.highlight_detector import detect_highlights
 
-projects = sorted(
-    Path("projects").iterdir(),
-    key=lambda p: p.stat().st_mtime,
-    reverse=True
-)
+def test_highlight_detector():
 
-project = None
+    project = Path("temp/test_project")
 
-for p in projects:
+    transcript = project / "transcript.json"
 
-    if (p / "transcript.json").exists():
+    assert transcript.exists(), (
+        "transcript.json belum ada.\n"
+        "Jalankan test_transcriber.py terlebih dahulu."
+    )
 
-        project = p
-        break
+    output = detect_highlights(project)
 
-if project is None:
-    raise Exception("Tidak ada project yang memiliki transcript.json")
+    assert output.exists()
 
-print("Project :", project.name)
+    print()
 
-output = detect_highlights(project)
+    print("==========================")
 
-print("Highlight :", output)
+    print("Highlight berhasil dibuat")
+
+    print(output)
+
+    print("==========================")
+
+
+if __name__ == "__main__":
+
+    test_highlight_detector()
