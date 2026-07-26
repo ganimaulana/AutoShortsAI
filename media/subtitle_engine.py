@@ -12,6 +12,7 @@ Subtitle Engine
 from pathlib import Path
 
 from media.ass_generator import ASSGenerator
+from media.burn_subtitle import burn_subtitle
 
 
 class SubtitleEngine:
@@ -22,30 +23,61 @@ class SubtitleEngine:
 
     # -------------------------------------------------
 
-    def generate(
+    def process(
 
         self,
 
+        input_video,
+
         segments,
 
-        output_file,
+        output_video,
 
     ):
 
-        output_file = Path(output_file)
+        input_video = Path(input_video)
 
-        output_file.parent.mkdir(
+        output_video = Path(output_video)
 
+        output_video.parent.mkdir(
             parents=True,
-
             exist_ok=True
-
         )
 
-        return self.generator.save(
+        subtitle_file = output_video.with_suffix(".ass")
 
-            output_file,
+        #
+        # Generate ASS
+        #
+
+        self.generator.save(
+
+            subtitle_file,
 
             segments
 
         )
+
+        #
+        # Burn Subtitle
+        #
+
+        burn_subtitle(
+
+            input_video,
+
+            subtitle_file,
+
+            output_video,
+
+        )
+
+        #
+        # Hapus file sementara
+        #
+
+        if subtitle_file.exists():
+
+            subtitle_file.unlink()
+
+        return output_video

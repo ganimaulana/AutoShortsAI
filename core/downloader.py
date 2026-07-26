@@ -3,60 +3,115 @@
 Gani Creative Studio
 Powered by Naraseta
 
+AutoShortsAI
+
 Video Downloader
 ==================================================
 """
 
 from pathlib import Path
+
 from yt_dlp import YoutubeDL
 
 
-def download_video(url: str, output_dir: Path) -> Path:
+def download_video(
+    url: str,
+    output_dir: Path,
+) -> Path:
     """
-    Download video YouTube ke folder project.
+    Download video YouTube.
 
     Parameters
     ----------
     url : str
-        URL video YouTube.
 
     output_dir : Path
-        Folder project.
 
     Returns
     -------
     Path
-        Lokasi file original.mp4
+        Downloaded video path.
     """
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = Path(output_dir)
 
-    output_file = output_dir / "original.%(ext)s"
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    #
+    # Hapus file original lama
+    #
+
+    for file in output_dir.glob("original.*"):
+        try:
+            file.unlink()
+        except Exception:
+            pass
+
+    output_template = output_dir / "original.%(ext)s"
 
     options = {
 
-        # Video terbaik + audio terbaik
-        "format": "bv*+ba/b",
+        #
+        # Format terbaik
+        #
 
+        "format": "bestvideo*+bestaudio/best",
+
+        #
         # Output
-        "outtmpl": str(output_file),
+        #
 
-        # Paksa hasil akhir MP4
-        "merge_output_format": "mp4",
+        "outtmpl": str(output_template),
 
-        # Overwrite jika sudah ada
-        "overwrites": True,
-
+        #
         # Jangan download playlist
+        #
+
         "noplaylist": True,
 
-        # Lebih rapi
+        #
+        # Overwrite
+        #
+
+        "overwrites": True,
+
+        #
+        # Quiet
+        #
+
         "quiet": True,
+
         "no_warnings": True,
 
     }
 
     with YoutubeDL(options) as ydl:
+
         ydl.download([url])
 
-    return output_dir / "original.mp4"
+    #
+    # Cari hasil download
+    #
+
+    candidates = sorted(
+
+        output_dir.glob("original.*")
+
+    )
+
+    if not candidates:
+
+        raise FileNotFoundError(
+
+            "Downloaded video not found."
+
+        )
+
+    #
+    # Ambil file pertama
+    #
+
+    return candidates[0]

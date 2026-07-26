@@ -21,6 +21,8 @@ class ClipEngine:
     Generate video clips from TimelineClip objects.
     """
 
+    # -------------------------------------------------
+
     def generate(
         self,
         video_path: Path,
@@ -45,23 +47,41 @@ class ClipEngine:
             )
 
             clip_video(
-
                 input_video=video_path,
-
                 output_video=output_file,
-
                 start=clip.start,
-
                 end=clip.end,
-
                 pre_roll=0,
-
                 post_roll=0,
-
             )
 
-            generated.append(
-                output_file
-            )
+            generated.append(output_file)
 
         return generated
+
+    # -------------------------------------------------
+    # Engine V2 Wrapper
+    # -------------------------------------------------
+
+    def process(self, context):
+        """
+        Pipeline wrapper.
+
+        Input
+        -----
+        ProjectContext
+
+        Output
+        ------
+        ProjectContext
+        """
+
+        clips_dir = context.project_path / "clips"
+
+        context.clips = self.generate(
+            video_path=context.video_path,
+            timeline=context.timeline,
+            output_dir=clips_dir,
+        )
+
+        return context

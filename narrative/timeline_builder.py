@@ -28,6 +28,8 @@ class TimelineBuilder:
     Build TimelineClip objects from ranked stories.
     """
 
+    # -------------------------------------------------
+
     def build(
         self,
         stories: List[Story]
@@ -41,59 +43,59 @@ class TimelineBuilder:
         #
 
         ranked = sorted(
-
             stories,
-
             key=lambda s: s.score,
-
             reverse=True
-
         )
 
         timelines = []
 
         for index, story in enumerate(
-
             ranked[:MAX_CLIPS],
-
             start=1
-
         ):
 
             start = max(
-
                 0,
-
                 story.start - TIMELINE_PRE_ROLL
-
             )
 
             end = story.end + TIMELINE_POST_ROLL
 
             clip = TimelineClip(
-
                 clip_id=index,
-
                 story_id=story.id,
-
                 start=start,
-
                 end=end,
-
                 duration=end - start,
-
                 score=story.score,
-
                 title=story.title,
-
                 topic=story.topic
-
             )
 
-            timelines.append(
-
-                clip
-
-            )
+            timelines.append(clip)
 
         return timelines
+
+    # -------------------------------------------------
+    # Engine V2 Wrapper
+    # -------------------------------------------------
+
+    def process(self, context):
+        """
+        Pipeline wrapper.
+
+        Input
+        -----
+        ProjectContext
+
+        Output
+        ------
+        ProjectContext
+        """
+
+        context.timeline = self.build(
+            context.stories
+        )
+
+        return context

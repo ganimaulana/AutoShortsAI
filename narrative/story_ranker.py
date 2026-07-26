@@ -57,25 +57,41 @@ class StoryRanker:
             story.clip_priority = story.score
 
         stories.sort(
-
             key=lambda s: s.score,
-
             reverse=True
-
         )
 
         return stories
 
     # -------------------------------------------------
+    # Engine V2 Wrapper
+    # -------------------------------------------------
+
+    def process(self, context):
+        """
+        Pipeline wrapper.
+
+        Input
+        -----
+        ProjectContext
+
+        Output
+        ------
+        ProjectContext
+        """
+
+        context.stories = self.rank(
+            context.stories
+        )
+
+        return context
+
+    # -------------------------------------------------
 
     def _count_keywords(
-
         self,
-
         text: str,
-
         words: List[str]
-
     ) -> int:
 
         text = text.lower()
@@ -85,7 +101,6 @@ class StoryRanker:
         for word in words:
 
             if word.lower() in text:
-
                 total += 1
 
         return total
@@ -93,125 +108,81 @@ class StoryRanker:
     # -------------------------------------------------
 
     def _score_hook(
-
         self,
-
         story: Story
-
     ) -> float:
 
         count = self._count_keywords(
-
             story.text,
-
             HOOK_WORDS
-
         )
 
         return min(
-
             count * 5,
-
             30
-
         )
 
     # -------------------------------------------------
 
     def _score_conflict(
-
         self,
-
         story: Story
-
     ) -> float:
 
         count = self._count_keywords(
-
             story.text,
-
             CONFLICT_WORDS
-
         )
 
         return min(
-
             count * 5,
-
             25
-
         )
 
     # -------------------------------------------------
 
     def _score_ending(
-
         self,
-
         story: Story
-
     ) -> float:
 
         count = self._count_keywords(
-
             story.text,
-
             ENDING_WORDS
-
         )
 
         return min(
-
             count * 4,
-
             20
-
         )
 
     # -------------------------------------------------
 
     def _score_engagement(
-
         self,
-
         story: Story
-
     ) -> float:
 
         count = self._count_keywords(
-
             story.text,
-
             ENGAGEMENT_WORDS
-
         )
 
         return min(
-
             count * 5,
-
             25
-
         )
 
     # -------------------------------------------------
 
     def _calculate_score(
-
         self,
-
         story: Story
-
     ) -> float:
 
         return (
-
             story.hook_score
-
             + story.conflict_score
-
             + story.ending_score
-
             + story.engagement_score
-
         )

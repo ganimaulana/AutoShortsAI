@@ -4,13 +4,18 @@ Gani Creative Studio
 Powered by Naraseta
 
 AutoShortsAI
+
 Video Transcriber
 ==================================================
 """
 
 from pathlib import Path
-from faster_whisper import WhisperModel
 import json
+
+from faster_whisper import WhisperModel
+
+from domain.segment import Segment
+from domain.word import Word
 
 # ==================================================
 # MODEL
@@ -34,19 +39,20 @@ def transcribe_video(
     language=None
 ):
     """
-    Melakukan transkripsi video menggunakan Faster-Whisper.
+    Transcribe video using Faster-Whisper.
 
-    Parameters
-    ----------
-    video_path : Path
-        Lokasi original.mp4
+    Returns
+    -------
+    dict
 
-    project_path : Path
-        Folder project
-
-    language : str | None
-        Misal "id", "en".
-        Jika None maka Whisper akan mendeteksi otomatis.
+    {
+        language,
+        duration,
+        segments,          # List[Segment]
+        segment_count,
+        transcript_file,
+        json_file
+    }
     """
 
     video_path = Path(video_path)
@@ -58,16 +64,22 @@ def transcribe_video(
     transcript_file = project_path / "transcript.txt"
     json_file = project_path / "transcript.json"
 
-    segments, info = model.transcribe(
+    whisper_segments, info = model.transcribe(
         str(video_path),
         beam_size=5,
-        language=language
+        language=language,
+        word_timestamps=True
     )
 
     transcript_lines = []
+
     json_segments = []
 
-    for segment in segments:
+    segments = []
+
+    # ---------------------------------------------
+
+    for index, segment in enumerate(whisper_segments, start=1):
 
         text = segment.text.strip()
 
@@ -75,7 +87,72 @@ def transcribe_video(
             f"[{segment.start:.2f} - {segment.end:.2f}] {text}"
         )
 
+        #
+        # Word Timestamp
+        #
+
+        words = []
+
+        json_words = []
+
+        if getattr(segment, "words", None):
+
+            for w in segment.words:
+
+                word = Word(
+                    text=w.word.strip(),
+                    start=round(w.start, 3),
+                    end=round(w.end, 3),
+                    confidence=getattr(
+                        w,
+                        "probability",
+                        None
+                    )
+                )
+
+                words.append(word)
+
+                json_words.append({
+
+                    "text": word.text,
+
+                    "start": word.start,
+
+                    "end": word.end,
+
+                    "confidence": word.confidence
+
+                })
+
+        #
+        # Domain Segment
+        #
+
+        domain_segment = Segment(
+
+            id=index,
+
+            start=round(segment.start, 2),
+
+            end=round(segment.end, 2),
+
+            text=text,
+
+            words=words
+
+        )
+
+        segments.append(
+            domain_segment
+        )
+
+        #
+        # JSON Export
+        #
+
         json_segments.append({
+
+            "id": index,
 
             "start": round(segment.start, 2),
 
@@ -86,27 +163,53 @@ def transcribe_video(
                 2
             ),
 
-            "text": text
+            "text": text,
+
+            "words": json_words
 
         })
 
+    # ---------------------------------------------
+    # TXT
+    # ---------------------------------------------
+
     transcript_file.write_text(
+
         "\n".join(transcript_lines),
+
         encoding="utf-8"
+
     )
 
+    # ---------------------------------------------
+    # JSON
+    # ---------------------------------------------
+
     with open(
+
         json_file,
+
         "w",
+
         encoding="utf-8"
+
     ) as f:
 
         json.dump(
+
             json_segments,
+
             f,
+
             indent=4,
+
             ensure_ascii=False
+
         )
+
+    # ---------------------------------------------
+    # Return
+    # ---------------------------------------------
 
     return {
 
@@ -114,7 +217,9 @@ def transcribe_video(
 
         "duration": round(info.duration, 2),
 
-        "segments": len(json_segments),
+        "segments": segments,
+
+        "segment_count": len(segments),
 
         "transcript_file": transcript_file,
 

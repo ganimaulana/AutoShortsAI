@@ -274,3 +274,40 @@ class StoryBuilder:
                 merged.append(story)
 
         return merged       
+    
+     # -------------------------------------------------
+
+    def process(self, context):
+        """
+        Engine V2 wrapper.
+
+        Input
+        -----
+        ProjectContext
+
+        Output
+        ------
+        ProjectContext
+        """
+
+        transcript = context.transcript
+
+        #
+        # Support beberapa bentuk input
+        #
+
+        if isinstance(transcript, dict):
+
+            # Jika nanti transcriber mengembalikan
+            # {"segments": [...]}
+            segments = transcript.get("segments", [])
+
+        else:
+
+            segments = transcript
+
+        context.stories = self.build(
+            segments
+        )
+
+        return context
