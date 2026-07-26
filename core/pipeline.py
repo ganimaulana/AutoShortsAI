@@ -35,7 +35,6 @@ class Pipeline:
 
         callback=None,
 
-        subtitle_style="default",
 
     ):
 
@@ -172,9 +171,6 @@ class Pipeline:
         # Subtitle Engine
         #
 
-        #
-        # Subtitle Engine
-        #
 
         self.status("Rendering subtitles...")
 
@@ -211,14 +207,29 @@ class Pipeline:
             )
 
             self.subtitle_engine.process(
-
                 input_video=clip_file,
-
                 segments=story.segments,
-
                 output_video=output_video,
-
             )
+
+            if output_video.exists():
+
+                if clip_file.exists():
+                    clip_file.unlink()
+
+                output_video.rename(
+                    clip_file
+                )
+
+                rendered.append(
+                    clip_file
+                )
+
+            else:
+
+                raise FileNotFoundError(
+                    f"Subtitle output not found: {output_video}"
+                )
 
             #
             # Replace original clip
@@ -247,14 +258,5 @@ class Pipeline:
 
         self.status("Completed ✅")
 
-        print("\n========== CLIPS ==========")
-
-        for i, clip in enumerate(context.clips, start=1):
-
-            print(f"{i}. {clip}")
-
-            print(f"   exists : {clip.exists()}")
-
-        print("===========================\n")
 
         return context
