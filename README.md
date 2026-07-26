@@ -1,11 +1,43 @@
 # AutoShortsAI
 
-AI untuk mengubah video panjang menjadi YouTube Shorts secara otomatis.
+AI-powered YouTube Shorts Generator
 
-## Cara Install
+Features
 
-pip install -r requirements.txt
+✔ Downloader
 
-## Cara Menjalankan
+✔ Whisper
 
-python app.py
+✔ Story Builder
+
+✔ Story Ranker
+
+✔ Timeline Builder
+
+✔ Clip Engine
+
+Roadmap
+
+v0.7 Pipeline
+
+v0.8 Subtitle
+
+v0.9 Smart Crop
+
+v1.0 Upload
+
+Architecture
+
+(Core Diagram)
+
+Getting Started
+
+Installation
+
+Run
+
+pytest
+
+Folder Structure
+
+License

@@ -114,3 +114,17 @@ APP_NAME = "AutoShortsAI"
 WINDOW_WIDTH = 1400
 
 WINDOW_HEIGHT = 900
+
+# =================================================
+# Timeline Builder
+# =================================================
+
+TIMELINE_PRE_ROLL = 1.0
+
+TIMELINE_POST_ROLL = 1.0
+
+MAX_CLIPS = 10
+
+MIN_CLIP_DURATION = 20
+
+MAX_CLIP_DURATION = 90

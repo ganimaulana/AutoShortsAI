@@ -1,8 +1,11 @@
 """
 ==================================================
-Narrative Intelligence Engine (NIE)
+Gani Creative Studio
+Powered by Naraseta
 
-Timeline Model
+AutoShortsAI
+
+Timeline Domain Model
 ==================================================
 """
 
@@ -11,18 +14,38 @@ from dataclasses import dataclass
 
 @dataclass(slots=True)
 class TimelineClip:
+    """
+    Timeline clip generated from a Story.
+    """
 
-    id: int
+    # =================================================
+    # Identity
+    # =================================================
+
+    clip_id: int
+
+    story_id: int
+
+    # =================================================
+    # Timeline
+    # =================================================
 
     start: float
 
     end: float
 
-    story_id: int
+    duration: float
+
+    # =================================================
+    # Ranking
+    # =================================================
+
+    score: float
+
+    # =================================================
+    # Metadata
+    # =================================================
 
     title: str = ""
 
-    @property
-    def duration(self):
-
-        return self.end - self.start
+    topic: str = ""
