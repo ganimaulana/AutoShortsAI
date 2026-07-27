@@ -25,7 +25,7 @@ from narrative.timeline_builder import TimelineBuilder
 
 from core.clip_engine import ClipEngine
 from media.subtitle_engine import SubtitleEngine
-
+from utils.logger import logger
 
 class Pipeline:
 
@@ -55,7 +55,7 @@ class Pipeline:
 
     def status(self, message):
 
-        print(message)
+        logger.info(message)
 
         if self.callback:
             self.callback(message)

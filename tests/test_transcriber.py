@@ -1,50 +1,57 @@
 """
 ==================================================
 AutoShortsAI
-Transcriber Integration Test
+Transcriber Test
 ==================================================
 """
 
 from pathlib import Path
 
+from core.downloader import download_video
 from core.transcriber import transcribe_video
 
 
-def test_transcriber():
+TEST_URL = "https://www.youtube.com/watch?v=Frcu00VNXtE"
 
-    project = Path("temp/test_project")
 
-    video = project / "original.mp4"
+def test_transcriber(tmp_path):
 
-    assert video.exists(), (
-        f"Video tidak ditemukan:\n{video}"
+    #
+    # Download sample
+    #
+
+    video = download_video(
+
+        TEST_URL,
+
+        tmp_path,
+
     )
 
-    result = transcribe_video(
+    assert video.exists()
+
+    #
+    # Transcribe
+    #
+
+    transcript = transcribe_video(
 
         video_path=video,
 
-        project_path=project,
+        project_path=tmp_path,
 
-        language=None
+        language=None,
 
     )
 
-    assert result["transcript_file"].exists()
+    #
+    # Validate
+    #
 
-    assert result["json_file"].exists()
+    assert transcript is not None
 
-    print()
+    assert "segments" in transcript
 
-    print("==========================")
-
-    print("Transkripsi berhasil")
-
-    print(result)
-
-    print("==========================")
-
-
-if __name__ == "__main__":
-
-    test_transcriber()
+    assert len(
+        transcript["segments"]
+    ) > 0

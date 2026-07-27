@@ -18,16 +18,41 @@ from domain.segment import Segment
 from domain.word import Word
 
 # ==================================================
-# MODEL
+# CONFIG
 # ==================================================
 
 MODEL_NAME = "base"
 
-model = WhisperModel(
-    MODEL_NAME,
-    device="cpu",
-    compute_type="int8"
-)
+#
+# Lazy Loaded Model
+#
+
+_model = None
+
+
+# ==================================================
+# MODEL
+# ==================================================
+
+def get_model() -> WhisperModel:
+    """
+    Load Whisper model only once.
+    """
+
+    global _model
+
+    if _model is None:
+
+        print("Loading Faster-Whisper model...")
+
+        _model = WhisperModel(
+            MODEL_NAME,
+            device="cpu",
+            compute_type="int8",
+        )
+
+    return _model
+
 
 # ==================================================
 # TRANSCRIBER
@@ -36,7 +61,7 @@ model = WhisperModel(
 def transcribe_video(
     video_path: Path,
     project_path: Path,
-    language=None
+    language=None,
 ):
     """
     Transcribe video using Faster-Whisper.
@@ -44,15 +69,6 @@ def transcribe_video(
     Returns
     -------
     dict
-
-    {
-        language,
-        duration,
-        segments,          # List[Segment]
-        segment_count,
-        transcript_file,
-        json_file
-    }
     """
 
     video_path = Path(video_path)
@@ -64,11 +80,17 @@ def transcribe_video(
     transcript_file = project_path / "transcript.txt"
     json_file = project_path / "transcript.json"
 
+    #
+    # Lazy Load Model
+    #
+
+    model = get_model()
+
     whisper_segments, info = model.transcribe(
         str(video_path),
         beam_size=5,
         language=language,
-        word_timestamps=True
+        word_timestamps=True,
     )
 
     transcript_lines = []
@@ -77,19 +99,18 @@ def transcribe_video(
 
     segments = []
 
-    # ---------------------------------------------
+    # ==================================================
 
-    for index, segment in enumerate(whisper_segments, start=1):
+    for index, segment in enumerate(
+        whisper_segments,
+        start=1,
+    ):
 
         text = segment.text.strip()
 
         transcript_lines.append(
             f"[{segment.start:.2f} - {segment.end:.2f}] {text}"
         )
-
-        #
-        # Word Timestamp
-        #
 
         words = []
 
@@ -106,123 +127,80 @@ def transcribe_video(
                     confidence=getattr(
                         w,
                         "probability",
-                        None
-                    )
+                        None,
+                    ),
                 )
 
                 words.append(word)
 
-                json_words.append({
-
-                    "text": word.text,
-
-                    "start": word.start,
-
-                    "end": word.end,
-
-                    "confidence": word.confidence
-
-                })
-
-        #
-        # Domain Segment
-        #
+                json_words.append(
+                    {
+                        "text": word.text,
+                        "start": word.start,
+                        "end": word.end,
+                        "confidence": word.confidence,
+                    }
+                )
 
         domain_segment = Segment(
-
             id=index,
-
             start=round(segment.start, 2),
-
             end=round(segment.end, 2),
-
             text=text,
-
-            words=words
-
+            words=words,
         )
 
-        segments.append(
-            domain_segment
+        segments.append(domain_segment)
+
+        json_segments.append(
+            {
+                "id": index,
+                "start": round(segment.start, 2),
+                "end": round(segment.end, 2),
+                "duration": round(
+                    segment.end - segment.start,
+                    2,
+                ),
+                "text": text,
+                "words": json_words,
+            }
         )
 
-        #
-        # JSON Export
-        #
-
-        json_segments.append({
-
-            "id": index,
-
-            "start": round(segment.start, 2),
-
-            "end": round(segment.end, 2),
-
-            "duration": round(
-                segment.end - segment.start,
-                2
-            ),
-
-            "text": text,
-
-            "words": json_words
-
-        })
-
-    # ---------------------------------------------
+    # ==================================================
     # TXT
-    # ---------------------------------------------
+    # ==================================================
 
     transcript_file.write_text(
-
         "\n".join(transcript_lines),
-
-        encoding="utf-8"
-
+        encoding="utf-8",
     )
 
-    # ---------------------------------------------
+    # ==================================================
     # JSON
-    # ---------------------------------------------
+    # ==================================================
 
     with open(
-
         json_file,
-
         "w",
-
-        encoding="utf-8"
-
+        encoding="utf-8",
     ) as f:
 
         json.dump(
-
             json_segments,
-
             f,
-
             indent=4,
-
-            ensure_ascii=False
-
+            ensure_ascii=False,
         )
 
-    # ---------------------------------------------
-    # Return
-    # ---------------------------------------------
+    # ==================================================
+    # RETURN
+    # ==================================================
 
     return {
-
         "language": info.language,
-
         "duration": round(info.duration, 2),
-
         "segments": segments,
-
         "segment_count": len(segments),
-
         "transcript_file": transcript_file,
-
-        "json_file": json_file
-
+        "json_file": json_file,
     }

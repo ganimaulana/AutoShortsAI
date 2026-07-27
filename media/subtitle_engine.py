@@ -23,6 +23,42 @@ class SubtitleEngine:
 
     # -------------------------------------------------
 
+    def generate(
+
+        self,
+
+        segments,
+
+        output,
+
+    ):
+
+        """
+        Backward compatibility.
+
+        Digunakan oleh unit test lama.
+        Hanya membuat file ASS.
+        """
+
+        output = Path(output)
+
+        output.parent.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        self.generator.save(
+
+            output,
+
+            segments,
+
+        )
+
+        return output
+
+    # -------------------------------------------------
+
     def process(
 
         self,
@@ -54,7 +90,7 @@ class SubtitleEngine:
 
             subtitle_file,
 
-            segments
+            segments,
 
         )
 
@@ -73,7 +109,7 @@ class SubtitleEngine:
         )
 
         #
-        # Hapus file sementara
+        # Cleanup
         #
 
         if subtitle_file.exists():
