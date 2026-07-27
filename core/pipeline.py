@@ -174,6 +174,12 @@ class Pipeline:
 
         self.status("Rendering subtitles...")
 
+        if not context.stories:
+
+            raise RuntimeError(
+                "No stories generated."
+            )
+
         story_map = {
             story.id: story
             for story in context.stories
@@ -181,10 +187,27 @@ class Pipeline:
 
         rendered = []
 
+        #
+        # Validation
+        #
+
+        if len(context.clips) != len(context.timeline):
+
+            raise RuntimeError(
+                f"Timeline ({len(context.timeline)}) "
+                f"!= Clips ({len(context.clips)})"
+            )
+
+        #
+        # Burn subtitles
+        #
+
         for clip_file, timeline in zip(
             context.clips,
             context.timeline,
         ):
+
+            
 
             story = story_map.get(
                 timeline.story_id
@@ -195,9 +218,10 @@ class Pipeline:
             #
 
             if story is None:
-                rendered.append(clip_file)
-                continue
-
+                raise RuntimeError(
+                    f"Story ID {timeline.story_id} not found."
+                )
+            
             #
             # Burn subtitle
             #
@@ -211,6 +235,12 @@ class Pipeline:
                 segments=story.segments,
                 output_video=output_video,
             )
+
+          
+
+            #
+            # Replace original clip
+            #
 
             if output_video.exists():
 
@@ -229,33 +259,11 @@ class Pipeline:
 
                 raise FileNotFoundError(
                     f"Subtitle output not found: {output_video}"
-                )
-
-            #
-            # Replace original clip
-            #
-
-            if output_video.exists():
-
-                if clip_file.exists():
-                    clip_file.unlink()
-
-                output_video.rename(
-                    clip_file
-                )
-
-            rendered.append(
-                clip_file
-            )
-
-            
+                )  
 
         context.clips = rendered
 
-        #
-        # Finish
-        #
-
+    
         self.status("Completed ✅")
 
 
