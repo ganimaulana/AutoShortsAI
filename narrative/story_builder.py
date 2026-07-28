@@ -12,6 +12,11 @@ Story Builder
 """
 
 from typing import List
+from domain import Segment
+from domain import Story
+
+from narrative.io.story_io import StoryIO
+from utils.logger import logger
 
 from config import (
     MIN_SEGMENT_WORDS,
@@ -278,6 +283,7 @@ class StoryBuilder:
      # -------------------------------------------------
 
     def process(self, context):
+
         """
         Engine V2 wrapper.
 
@@ -291,6 +297,24 @@ class StoryBuilder:
         """
 
         transcript = context.transcript
+
+        #
+        # Smart Story Cache
+        #
+
+        if StoryIO.exists(context.project_path):
+
+            logger.info("Story cache found.")
+
+            context.stories = StoryIO.load(
+                context.project_path
+            )
+
+            logger.info(
+                f"Loaded {len(context.stories)} stories."
+            )
+
+            return context
 
         #
         # Support beberapa bentuk input
@@ -309,5 +333,9 @@ class StoryBuilder:
         context.stories = self.build(
             segments
         )
-
+        StoryIO.save(
+            context.project_path,
+            context.stories,
+        )
+        
         return context

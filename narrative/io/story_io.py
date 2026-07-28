@@ -9,25 +9,67 @@ Story IO
 ==================================================
 """
 
+from pathlib import Path
+
 from domain import Story
 
 from .base_io import BaseIO
 
 
 class StoryIO(BaseIO):
+
     """
     Read / Write Story objects.
     """
+    FILE_NAME = "story.json"
+
+    # =================================================
+    # PATH
+    # =================================================
+
+    @classmethod
+    def path(cls, project_path) -> Path:
+        return Path(project_path) / cls.FILE_NAME
+
+
+    # =================================================
+    # RESOLVE PATH
+    # =================================================
+
+    @classmethod
+    def resolve_path(cls, path) -> Path:
+
+        path = Path(path)
+
+        if path.suffix.lower() == ".json":
+            return path
+
+        return path / cls.FILE_NAME
+
+
+    # =================================================
+    # EXISTS
+    # =================================================
+
+    @classmethod
+    def exists(cls, path) -> bool:
+
+        return cls.resolve_path(path).exists()
+
+    
 
     # =================================================
     # Save
     # =================================================
 
-    @staticmethod
-    def save(path, stories):
+    @classmethod
+    def save(cls, path, stories):
         """
         Save Story list into JSON.
         """
+
+        path = cls.resolve_path(path)
+        
 
         output = {
 
@@ -53,11 +95,16 @@ class StoryIO(BaseIO):
     # Load
     # =================================================
 
-    @staticmethod
-    def load(path):
+    @classmethod
+    def load(cls, path):
         """
         Load Story list from JSON.
         """
+
+        path = cls.resolve_path(path)
+
+
+
 
         data = BaseIO.load_json(path)
 
