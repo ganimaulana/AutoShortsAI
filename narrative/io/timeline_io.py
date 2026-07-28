@@ -11,25 +11,64 @@ Timeline IO
 ==================================================
 """
 
+from pathlib import Path
+
 from domain.timeline import TimelineClip
 
 from .base_io import BaseIO
 
 
 class TimelineIO(BaseIO):
+
     """
     Read / Write TimelineClip objects.
     """
+    FILE_NAME = "timeline.json"
+
+    # =================================================
+    # PATH
+    # =================================================
+
+    @classmethod
+    def path(cls, project_path) -> Path:
+        return Path(project_path) / cls.FILE_NAME
+
+
+    # =================================================
+    # RESOLVE PATH
+    # =================================================
+
+    @classmethod
+    def resolve_path(cls, path) -> Path:
+
+        path = Path(path)
+
+        if path.suffix.lower() == ".json":
+            return path
+
+        return path / cls.FILE_NAME
+
+
+    # =================================================
+    # EXISTS
+    # =================================================
+
+    @classmethod
+    def exists(cls, path) -> bool:
+
+        return cls.resolve_path(path).exists()
 
     # =================================================
     # Save
     # =================================================
 
-    @staticmethod
-    def save(path, timelines):
+    @classmethod
+    def save(cls, path, timelines):
         """
         Save TimelineClip list into JSON.
         """
+
+        path = cls.resolve_path(path)
 
         output = {
 
@@ -71,12 +110,13 @@ class TimelineIO(BaseIO):
     # Load
     # =================================================
 
-    @staticmethod
-    def load(path):
+    @classmethod
+    def load(cls, path):
         """
         Load TimelineClip list from JSON.
         """
 
+        path = cls.resolve_path(path)
         data = BaseIO.load_json(path)
 
         clips = []

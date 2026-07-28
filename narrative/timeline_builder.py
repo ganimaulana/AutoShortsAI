@@ -21,6 +21,8 @@ from config import (
 
 from domain import Story
 from domain.timeline import TimelineClip
+from narrative.io.timeline_io import TimelineIO
+from utils.logger import logger
 
 
 class TimelineBuilder:
@@ -94,8 +96,35 @@ class TimelineBuilder:
         ProjectContext
         """
 
+        #
+        # Smart Timeline Cache
+        #
+
+        if TimelineIO.exists(context.project_path):
+
+            logger.info("Timeline cache found.")
+
+            context.timeline = TimelineIO.load(
+                context.project_path
+            )
+
+            logger.info(
+                f"Loaded {len(context.timeline)} timeline clips."
+            )
+
+            return context
+
+        #
+        # Build Timeline
+        #
+
         context.timeline = self.build(
             context.stories
+        )
+
+        TimelineIO.save(
+            context.project_path,
+            context.timeline,
         )
 
         return context
