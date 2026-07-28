@@ -10,12 +10,13 @@ Video Transcriber
 """
 
 from pathlib import Path
-import json
 
 from faster_whisper import WhisperModel
 
 from domain.segment import Segment
 from domain.word import Word
+from narrative.io.transcript_io import TranscriptIO
+from utils.logger import logger
 
 # ==================================================
 # CONFIG
@@ -43,7 +44,7 @@ def get_model() -> WhisperModel:
 
     if _model is None:
 
-        print("Loading Faster-Whisper model...")
+        logger.info("Loading Faster-Whisper model...")
 
         _model = WhisperModel(
             MODEL_NAME,
@@ -78,7 +79,32 @@ def transcribe_video(
         raise FileNotFoundError(video_path)
 
     transcript_file = project_path / "transcript.txt"
-    json_file = project_path / "transcript.json"
+    json_file = TranscriptIO.resolve_path(
+        project_path
+    )
+
+    #
+    # Smart Cache
+    #
+
+    if TranscriptIO.exists(project_path):
+
+        logger.info("Transcript cache found.")
+
+        segments = TranscriptIO.load(project_path)
+
+        logger.info(
+            f"Loaded {len(segments)} transcript segments."
+        )
+
+        return {
+            "language": language,
+            "duration": None,
+            "segments": segments,
+            "segment_count": len(segments),
+            "transcript_file": transcript_file,
+            "json_file": json_file,
+        }
 
     #
     # Lazy Load Model
@@ -94,8 +120,6 @@ def transcribe_video(
     )
 
     transcript_lines = []
-
-    json_segments = []
 
     segments = []
 
@@ -114,7 +138,6 @@ def transcribe_video(
 
         words = []
 
-        json_words = []
 
         if getattr(segment, "words", None):
 
@@ -133,14 +156,7 @@ def transcribe_video(
 
                 words.append(word)
 
-                json_words.append(
-                    {
-                        "text": word.text,
-                        "start": word.start,
-                        "end": word.end,
-                        "confidence": word.confidence,
-                    }
-                )
+                
 
         domain_segment = Segment(
             id=index,
@@ -152,19 +168,7 @@ def transcribe_video(
 
         segments.append(domain_segment)
 
-        json_segments.append(
-            {
-                "id": index,
-                "start": round(segment.start, 2),
-                "end": round(segment.end, 2),
-                "duration": round(
-                    segment.end - segment.start,
-                    2,
-                ),
-                "text": text,
-                "words": json_words,
-            }
-        )
+        
 
     # ==================================================
     # TXT
@@ -179,19 +183,11 @@ def transcribe_video(
     # JSON
     # ==================================================
 
-    with open(
-        json_file,
-        "w",
-        encoding="utf-8",
-    ) as f:
-
-        json.dump(
-            json_segments,
-            f,
-            indent=4,
-            ensure_ascii=False,
-        )
-
+    TranscriptIO.save(
+        project_path,
+        segments,
+    )
+    
     # ==================================================
     # RETURN
     # ==================================================
