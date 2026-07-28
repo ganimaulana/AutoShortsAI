@@ -61,6 +61,77 @@ class Pipeline:
             self.callback(message)
 
     # ==================================================
+    # Analyze
+    # ==================================================
+
+    def step_analyze(self, context):
+
+        self.status("Analyzing video...")
+
+        info = analyze_video(context.url)
+
+        context.metadata = info
+
+    # ==================================================
+    # Create Project
+    # ==================================================
+
+    def step_create_project(self, context):
+
+        self.status("Creating project...")
+
+        context.project_path = create_project(
+            context.metadata["title"]
+        )
+
+        self.status("Saving metadata...")
+
+        save_metadata(
+            context.project_path,
+            context.metadata,
+        )
+
+    # ==================================================
+    # Download
+    # ==================================================
+
+    def step_download(self, context):
+
+        self.status("Downloading video...")
+
+        context.video_path = download_video(
+            context.url,
+            context.project_path,
+        )
+    # ==================================================
+    # Transcriber
+    # ==================================================
+
+    def step_transcriber(self, context):
+
+        self.status("Transcribing audio...")
+
+        context.transcript = transcribe_video(
+            context.video_path,
+            context.project_path,
+        )
+
+    # ==================================================
+    # Story Builder
+    # ==================================================
+
+    def step_story_builder(self, context):
+
+        self.status("Building stories...")
+
+        return self.story_builder.process(
+            context
+        )
+
+    # ==================================================
+    # ==================================================
+    # ==================================================    
+    # ==================================================
 
     def run(self, url):
 
@@ -68,72 +139,15 @@ class Pipeline:
             url=url
         )
 
-        #
-        # Analyze
-        #
+        self.step_analyze(context)
 
-        self.status("Analyzing video...")
+        self.step_create_project(context)
 
-        info = analyze_video(url)
+        self.step_download(context)
 
-        context.metadata = info
+        self.step_transcriber(context)
 
-        #
-        # Project
-        #
-
-        self.status("Creating project...")
-
-        context.project_path = create_project(
-            info["title"]
-        )
-
-        #
-        # Metadata
-        #
-
-        self.status("Saving metadata...")
-
-        save_metadata(
-            context.project_path,
-            info
-        )
-
-        #
-        # Download
-        #
-
-        self.status("Downloading video...")
-
-        context.video_path = download_video(
-
-            url,
-
-            context.project_path,
-
-        )
-
-        #
-        # Whisper
-        #
-
-        self.status("Transcribing audio...")
-
-        context.transcript = transcribe_video(
-
-            context.video_path,
-
-            context.project_path,
-
-        )
-
-        #
-        # Story Builder
-        #
-
-        self.status("Building stories...")
-
-        context = self.story_builder.process(
+        context = self.step_story_builder(
             context
         )
 
