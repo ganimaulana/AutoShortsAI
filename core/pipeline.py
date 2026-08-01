@@ -25,17 +25,15 @@ from narrative.timeline_builder import TimelineBuilder
 
 from core.clip_engine import ClipEngine
 from media.subtitle_engine import SubtitleEngine
+from core.ai_engine import AIEngine
 from utils.logger import logger
 
 class Pipeline:
 
     def __init__(
-
         self,
-
         callback=None,
-
-
+        cancel_token=None,
     ):
 
         self.callback = callback
@@ -49,6 +47,10 @@ class Pipeline:
         self.clip_engine = ClipEngine()
 
         self.subtitle_engine = SubtitleEngine()
+
+        self.ai_engine = AIEngine()
+
+        self.cancel_token = cancel_token
             
 
     # ==================================================
@@ -60,6 +62,19 @@ class Pipeline:
         if self.callback:
             self.callback(message)
 
+    # ==================================================
+
+    def check_cancel(self):
+
+        if (
+            self.cancel_token
+            and
+            self.cancel_token.cancelled
+        ):
+
+            raise RuntimeError(
+                "Pipeline cancelled."
+            )
     # ==================================================
     # Analyze
     # ==================================================
@@ -103,6 +118,7 @@ class Pipeline:
             context.url,
             context.project_path,
         )
+
     # ==================================================
     # Transcriber
     # ==================================================
@@ -115,7 +131,7 @@ class Pipeline:
             context.video_path,
             context.project_path,
         )
-
+        
     # ==================================================
     # Story Builder
     # ==================================================
@@ -124,46 +140,29 @@ class Pipeline:
 
         self.status("Building stories...")
 
-        return self.story_builder.process(
+        context = self.story_builder.process(
             context
         )
 
+        return context
     # ==================================================
+    # Story Ranker
     # ==================================================
-    # ==================================================    
-    # ==================================================
 
-    def run(self, url):
-
-        context = ProjectContext(
-            url=url
-        )
-
-        self.step_analyze(context)
-
-        self.step_create_project(context)
-
-        self.step_download(context)
-
-        self.step_transcriber(context)
-
-        context = self.step_story_builder(
-            context
-        )
-
-        #
-        # Story Ranker
-        #
+    def step_story_ranker(self, context):
 
         self.status("Ranking stories...")
 
         context = self.story_ranker.process(
             context
         )
+    
+        return context
+    # ==================================================
+    # Timeline Builder
+    # ==================================================
 
-        #
-        # Timeline Builder
-        #
+    def step_timeline_builder(self, context):
 
         self.status("Building timeline...")
 
@@ -171,9 +170,12 @@ class Pipeline:
             context
         )
 
-        #
-        # Clip Engine
-        #
+        return context
+    # ==================================================
+    # Clip Engine
+    # ==================================================
+
+    def step_clip_engine(self, context):
 
         self.status("Generating clips...")
 
@@ -181,10 +183,12 @@ class Pipeline:
             context
         )
 
-        #
-        # Subtitle Engine
-        #
+        return context
+    # ==================================================
+    # Subtitle Engine
+    # ==================================================
 
+    def step_subtitle_engine(self, context):
 
         self.status("Rendering subtitles...")
 
@@ -201,10 +205,6 @@ class Pipeline:
 
         rendered = []
 
-        #
-        # Validation
-        #
-
         if len(context.clips) != len(context.timeline):
 
             raise RuntimeError(
@@ -212,33 +212,20 @@ class Pipeline:
                 f"!= Clips ({len(context.clips)})"
             )
 
-        #
-        # Burn subtitles
-        #
-
         for clip_file, timeline in zip(
             context.clips,
             context.timeline,
+        
         ):
-
-            
-
+            self.check_cancel()
             story = story_map.get(
                 timeline.story_id
             )
-
-            #
-            # Safety
-            #
 
             if story is None:
                 raise RuntimeError(
                     f"Story ID {timeline.story_id} not found."
                 )
-            
-            #
-            # Burn subtitle
-            #
 
             output_video = clip_file.with_name(
                 f"{clip_file.stem}_sub{clip_file.suffix}"
@@ -250,11 +237,8 @@ class Pipeline:
                 output_video=output_video,
             )
 
-          
+            self.check_cancel()
 
-            #
-            # Replace original clip
-            #
 
             if output_video.exists():
 
@@ -273,11 +257,72 @@ class Pipeline:
 
                 raise FileNotFoundError(
                     f"Subtitle output not found: {output_video}"
-                )  
+                )
 
         context.clips = rendered
 
-    
+    # ==================================================
+    # ==================================================
+    # ==================================================
+    # ==================================================
+    # ==================================================
+    # ==================================================    
+    # ==================================================
+
+    def run(self, url):
+
+        context = ProjectContext(
+            url=url
+        )
+
+        steps = [
+
+            self.step_analyze,
+
+            self.step_create_project,
+
+            self.step_download,
+
+            self.step_transcriber,
+
+        ]
+
+        for step in steps:
+
+            step(context)
+
+            self.check_cancel()
+
+        context = self.step_story_builder(
+            context
+        )
+
+        self.check_cancel()
+
+        context = self.step_story_ranker(
+            context
+        )
+
+        self.check_cancel()
+
+        context = self.step_timeline_builder(
+            context
+        )
+
+        self.check_cancel()
+
+        context = self.step_clip_engine(
+            context
+        )
+
+        self.check_cancel()
+
+        self.step_subtitle_engine(
+            context
+        )
+
+        self.check_cancel()
+
         self.status("Completed ✅")
 
 

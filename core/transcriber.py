@@ -18,10 +18,6 @@ from domain.word import Word
 from narrative.io.transcript_io import TranscriptIO
 from utils.logger import logger
 
-# ==================================================
-# CONFIG
-# ==================================================
-
 MODEL_NAME = "base"
 
 #

@@ -14,6 +14,7 @@ from typing import List
 
 from domain.timeline import TimelineClip
 from media.clipper import clip_video
+from utils.logger import logger
 
 
 class ClipEngine:
@@ -46,16 +47,29 @@ class ClipEngine:
                 f"clip{clip.clip_id:03}.mp4"
             )
 
-            clip_video(
-                input_video=video_path,
-                output_video=output_file,
-                start=clip.start,
-                end=clip.end,
-                pre_roll=0,
-                post_roll=0,
-            )
+            #
+            # Resume Rendering
+            #
+
+            if output_file.exists():
+
+                logger.info(
+                    f"Skip existing clip: {output_file.name}"
+                )
+
+            else:
+
+                clip_video(
+                    input_video=video_path,
+                    output_video=output_file,
+                    start=clip.start,
+                    end=clip.end,
+                    pre_roll=0,
+                    post_roll=0,
+                )
 
             generated.append(output_file)
+            
 
         return generated
 

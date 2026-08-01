@@ -13,25 +13,38 @@ from abc import ABC
 from abc import abstractmethod
 
 from domain.story import Story
+from domain.detector_result import DetectorResult
 
 
 class BaseDetector(ABC):
     """
-    Base class for all narrative detectors.
+    Base class untuk seluruh detector.
+
+    Semua detector WAJIB mengembalikan DetectorResult,
+    bukan float.
     """
 
     name = "Detector"
 
     weight = 1.0
 
+    enabled = True
+
     @abstractmethod
-    def score(
+    def analyze(
         self,
         story: Story,
-    ) -> float:
+    ) -> DetectorResult:
         """
-        Return score contribution.
+        Jalankan analisis terhadap Story.
 
-        Must return 0.0 or higher.
+        Harus mengembalikan DetectorResult.
         """
         raise NotImplementedError
+
+    def __call__(
+        self,
+        story: Story,
+    ) -> DetectorResult:
+
+        return self.analyze(story)

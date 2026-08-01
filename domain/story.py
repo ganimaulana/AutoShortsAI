@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import List
 
 from .segment import Segment
+from .detector_result import DetectorResult
 
 
 @dataclass(slots=True)
@@ -61,7 +62,13 @@ class Story:
     tags: List[str] = field(default_factory=list)
 
     # =================================================
-    # Scores
+    # Detector Results (NEW)
+    # =================================================
+
+    detectors: List[DetectorResult] = field(default_factory=list)
+
+    # =================================================
+    # Scores (Legacy Compatibility)
     # =================================================
 
     hook_score: float = 0.0
@@ -79,8 +86,6 @@ class Story:
     # =================================================
     # Properties
     # =================================================
-
-    
 
     @property
     def text(self):
@@ -102,6 +107,34 @@ class Story:
         )
 
     # =================================================
+    # Detector Helpers
+    # =================================================
+
+    def add_detector_result(
+        self,
+        result: DetectorResult,
+    ):
+
+        self.detectors.append(result)
+
+    def get_detector(
+        self,
+        detector_name: str,
+    ):
+
+        for detector in self.detectors:
+
+            if detector.name == detector_name:
+
+                return detector
+
+        return None
+
+    def clear_detectors(self):
+
+        self.detectors.clear()
+
+    # =================================================
     # Helpers
     # =================================================
 
@@ -110,6 +143,7 @@ class Story:
         self.segments.append(segment)
 
         if len(self.segments) == 1:
+
             self.start = segment.start
 
         self.end = segment.end
@@ -121,6 +155,8 @@ class Story:
         self.segments.clear()
 
         self.segment_ids.clear()
+
+        self.detectors.clear()
 
         self.text_cache = ""
 
@@ -173,6 +209,14 @@ class Story:
             "clip_priority": self.clip_priority,
 
             "score": self.score,
+
+            "detectors": [
+
+                detector.to_dict()
+
+                for detector in self.detectors
+
+            ],
 
             "segments": [
 

@@ -1,428 +1,808 @@
-from pathlib import Path
-from PIL import Image
-from urllib.request import urlretrieve
-import threading
-import customtkinter as ctk
+"""
+==================================================
+Gani Creative Studio
+Powered by Naraseta
 
-from core.downloader import download_video
+AutoShortsAI
+
+Main Window
+==================================================
+"""
+
+from PySide6.QtCore import (
+    Qt,
+    QThread,
+    QByteArray,
+)
+
+from PySide6.QtGui import (
+    QAction,
+    QPixmap,
+)
+
 from core.analyzer import analyze_video
+from pathlib import Path
+import os
 
-# ==========================================================
-# APP INFO
-# ==========================================================
+from gui.worker import PipelineWorker
+from urllib.request import urlopen
 
-COMPANY = "Gani Creative Studio"
-POWERED = "Powered by Naraseta"
-VERSION = "v0.3.0"
-
-# ==========================================================
-# HELPER
-# ==========================================================
-
-def format_duration(seconds):
-
-    if seconds is None:
-        return "-"
-
-    minutes = seconds // 60
-    sec = seconds % 60
-
-    return f"{minutes:02}:{sec:02}"
-
-
-def format_views(views):
-
-    if views is None:
-        return "-"
-
-    return f"{views:,}".replace(",", ".")
+from PySide6.QtWidgets import (
+    QMessageBox,
+    QMainWindow,
+    QWidget,
+    QLabel,
+    QPushButton,
+    QLineEdit,
+    QTextEdit,
+    QProgressBar,
+    QVBoxLayout,
+    QHBoxLayout,
+    QGroupBox,
+    QFormLayout,
+    QStatusBar,
+)
 
 
-def format_date(date):
-
-    if not date:
-        return "-"
-
-    return f"{date[6:8]}/{date[4:6]}/{date[:4]}"
-
-
-# ==========================================================
-# MAIN WINDOW
-# ==========================================================
-
-class MainWindow(ctk.CTk):
+class MainWindow(QMainWindow):
 
     def __init__(self):
 
         super().__init__()
 
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
+        self.video_info = None
+        self.current_url = ""
+        self.thread = None
+        self.worker = None
 
-        self.title(f"{COMPANY} - AutoShorts")
+        self.project_path = None
 
-        self.geometry("980x720")
+        self.setWindowTitle("AutoShortsAI v0.1")
 
-        self.resizable(False, False)
+        self.resize(1200, 800)
 
-        self.build_header()
+        self.build_ui()
 
-        self.build_url()
+    # ==================================================
+    # UI
+    # ==================================================
 
-        self.build_video_card()
+    def build_ui(self):
 
-        self.build_buttons()
+        central = QWidget()
 
-        self.build_progress()
+        self.setCentralWidget(central)
 
-        self.build_footer()
+        root = QVBoxLayout(central)
 
-    # ======================================================
+        root.setContentsMargins(
+            15,
+            15,
+            15,
+            15,
+        )
 
-    def build_header(self):
+        root.setSpacing(15)
 
-        company = ctk.CTkLabel(
+        # -----------------------------------------
+        # URL
+        # -----------------------------------------
+
+        url_group = QGroupBox("YouTube URL")
+
+        url_layout = QVBoxLayout(url_group)
+
+        self.url_edit = QLineEdit()
+
+        self.url_edit.setPlaceholderText(
+            "https://youtube.com/watch?v=..."
+        )
+
+        url_layout.addWidget(
+            self.url_edit
+        )
+
+        button_layout = QHBoxLayout()
+
+        self.analyze_button = QPushButton(
+            "Analyze"
+        )
+
+        self.analyze_button.clicked.connect(
+            self.analyze_clicked
+        )
+
+        self.start_button = QPushButton(
+            "Start"
+        )
+
+        self.start_button.clicked.connect(
+            self.start_pipeline
+        )
+
+        self.start_button.setEnabled(False)
+
+        self.stop_button = QPushButton(
+            "Stop"
+        )
+
+        self.stop_button.setEnabled(False)
+
+        self.stop_button.clicked.connect(
+            self.stop_pipeline
+        )
+
+        button_layout.addWidget(
+            self.analyze_button
+        )
+
+        button_layout.addWidget(
+            self.start_button
+        )
+
+        button_layout.addWidget(
+            self.stop_button
+        )
+
+        button_layout.addStretch()
+
+        url_layout.addLayout(
+            button_layout
+        )
+
+        root.addWidget(
+            url_group
+        )
+
+        # -----------------------------------------
+        # Project
+        # -----------------------------------------
+
+        project_group = QGroupBox(
+            "Project Information"
+        )
+
+        project_layout = QHBoxLayout(
+            project_group
+        )
+
+        #
+        # Thumbnail
+        #
+
+        self.thumbnail = QLabel(
+            "Thumbnail"
+        )
+
+        self.thumbnail.setAlignment(
+            Qt.AlignCenter
+        )
+
+        self.thumbnail.setFixedSize(
+            220,
+            124,
+        )
+
+        self.thumbnail.setStyleSheet(
+            """
+            background:#3b3b3b;
+            border:1px solid gray;
+            border-radius:6px;
+            """
+        )
+
+        project_layout.addWidget(
+            self.thumbnail
+        )
+
+        #
+        # Metadata
+        #
+
+        form = QFormLayout()
+
+        self.title_label = QLabel("-")
+
+        self.channel_label = QLabel("-")
+
+        self.duration_label = QLabel("-")
+
+        self.language_label = QLabel("-")
+
+        self.status_label = QLabel(
+            "Ready"
+        )
+
+        form.addRow(
+            "Title",
+            self.title_label,
+        )
+
+        form.addRow(
+            "Channel",
+            self.channel_label,
+        )
+
+        form.addRow(
+            "Duration",
+            self.duration_label,
+        )
+
+        form.addRow(
+            "Language",
+            self.language_label,
+        )
+
+        form.addRow(
+            "Status",
+            self.status_label,
+        )
+
+        project_layout.addLayout(
+            form
+        )
+
+        root.addWidget(
+            project_group
+        )
+
+        # -----------------------------------------
+        # Progress
+        # -----------------------------------------
+
+        progress_group = QGroupBox(
+            "Progress"
+        )
+
+        progress_layout = QVBoxLayout(
+            progress_group
+        )
+
+        self.progress = QProgressBar()
+
+        self.progress.setRange(
+            0,
+            100,
+        )
+
+        
+        self.progress.setValue(
+            0
+        )
+
+        progress_layout.addWidget(
+            self.progress
+        )
+
+        root.addWidget(
+            progress_group
+        )
+
+
+        # -----------------------------------------
+        # Log
+        # -----------------------------------------
+
+        log_group = QGroupBox(
+            "Log"
+        )
+
+        log_layout = QVBoxLayout(
+            log_group
+        )
+
+        self.log = QTextEdit()
+
+        self.log.setReadOnly(True)
+
+        log_layout.addWidget(
+            self.log
+        )
+
+        self.write_log(
+            "[SYSTEM] Welcome to AutoShortsAI"
+        )
+
+        self.write_log(
+            "[SYSTEM] Ready."
+        )
+
+        
+
+        root.addWidget(
+            log_group
+        )
+
+        # -----------------------------------------
+        # Bottom
+        # -----------------------------------------
+
+        bottom = QHBoxLayout()
+
+        bottom.addStretch()
+
+        self.open_project_button = QPushButton(
+            "Open Project Folder"
+        )
+
+        self.open_project_button.clicked.connect(
+            self.open_project_folder
+        )
+
+        bottom.addWidget(
+            self.open_project_button
+        )
+
+        root.addLayout(
+            bottom
+        )
+
+        # -----------------------------------------
+        # Status Bar
+        # -----------------------------------------
+
+        self.status = QStatusBar()
+
+        self.setStatusBar(
+            self.status
+        )
+
+        self.status.showMessage(
+            "Ready"
+        )
+
+        # -----------------------------------------
+        # Menu
+        # -----------------------------------------
+
+        about_action = QAction(
+            "About",
             self,
-            text=COMPANY,
-            font=("Segoe UI",34,"bold")
         )
 
-        company.pack(pady=(25,0))
+        menu = self.menuBar()
 
-        powered = ctk.CTkLabel(
-            self,
-            text=POWERED,
-            font=("Segoe UI",16),
-            text_color="gray70"
+        help_menu = menu.addMenu(
+            "Help"
         )
 
-        powered.pack(pady=(5,25))
-
-    # ======================================================
-
-    def build_url(self):
-
-        label = ctk.CTkLabel(
-            self,
-            text="Paste YouTube URL",
-            font=("Segoe UI",18,"bold")
+        help_menu.addAction(
+            about_action
         )
-
-        label.pack()
-
-        self.url_entry = ctk.CTkEntry(
-            self,
-            width=760,
-            height=45,
-            placeholder_text="https://youtube.com/watch?v=..."
-        )
-
-        self.url_entry.pack(pady=15)
-
-    # ======================================================
-
-    def build_video_card(self):
-
-        self.card = ctk.CTkFrame(
-            self,
-            width=840,
-            height=190
-        )
-
-        self.card.pack()
-
-        self.card.pack_propagate(False)
-
-        self.title_label = ctk.CTkLabel(
-            self.card,
-            text="Title : -",
-            anchor="w",
-            font=("Segoe UI",17,"bold")
-        )
-
-        self.title_label.pack(fill="x",padx=20,pady=(15,5))
-
-        self.channel_label = ctk.CTkLabel(
-            self.card,
-            text="Channel : -",
-            anchor="w"
-        )
-
-        self.channel_label.pack(fill="x",padx=20)
-
-        self.duration_label = ctk.CTkLabel(
-            self.card,
-            text="Duration : -",
-            anchor="w"
-        )
-
-        self.duration_label.pack(fill="x",padx=20)
-
-        self.views_label = ctk.CTkLabel(
-            self.card,
-            text="Views : -",
-            anchor="w"
-        )
-
-        self.views_label.pack(fill="x",padx=20)
-
-        self.upload_label = ctk.CTkLabel(
-            self.card,
-            text="Upload : -",
-            anchor="w"
-        )
-
-        self.upload_label.pack(fill="x",padx=20)
-
-        self.resolution_label = ctk.CTkLabel(
-            self.card,
-            text="Resolution : -",
-            anchor="w"
-        )
-
-        self.resolution_label.pack(fill="x",padx=20)
-
-    # ======================================================
-
-    def build_buttons(self):
-
-        frame = ctk.CTkFrame(
-            self,
-            fg_color="transparent"
-        )
-
-        frame.pack(pady=20)
-
-        self.analyze_btn = ctk.CTkButton(
-            frame,
-            text="Analyze",
-            width=180,
-            height=45,
-            font=("Segoe UI",16,"bold"),
-            command=self.start_analyze
-        )
-
-        self.analyze_btn.pack(
-            side="left",
-            padx=10
-        )
-
-        self.download_btn = ctk.CTkButton(
-            frame,
-            text="Download",
-            width=180,
-            height=45,
-            font=("Segoe UI",16,"bold"),
-            command=self.start_download
-        )
-
-        self.download_btn.pack(
-            side="left",
-            padx=10
-        )
-
-    # ======================================================
-
-    def build_progress(self):
-
-        self.progress = ctk.CTkProgressBar(
-            self,
-            width=720
-        )
-
-        self.progress.pack()
-
-        self.progress.set(0)
-
-        self.status = ctk.CTkLabel(
-            self,
-            text="Ready...",
-            font=("Segoe UI",16)
-        )
-
-        self.status.pack(pady=20)
-       # ======================================================
-    # FOOTER
-    # ======================================================
-
-    def build_footer(self):
-
-        footer = ctk.CTkLabel(
-            self,
-            text=f"Version {VERSION}",
-            font=("Segoe UI", 12),
-            text_color="gray60"
-        )
-
-        footer.pack(side="bottom", pady=18)
-
-    # ======================================================
-    # ANALYZE
-    # ======================================================
-
-    def start_analyze(self):
-
-        threading.Thread(
-            target=self.process_analyze,
-            daemon=True
-        ).start()
-
-    def process_analyze(self):
-
-        url = self.url_entry.get().strip()
-
-        if url == "":
-            self.status.configure(
-                text="Please paste a YouTube URL."
-            )
-            return
-
-        self.analyze_btn.configure(state="disabled")
-
-        self.progress.set(0.10)
-
-        self.status.configure(text="Analyzing video...")
-
-        try:
-
-            info = analyze_video(url)
-
-            self.title_label.configure(
-                text=f"Title : {info['title']}"
-            )
-
-            self.channel_label.configure(
-                text=f"Channel : {info['channel']}"
-            )
-
-            self.duration_label.configure(
-                text=f"Duration : {format_duration(info['duration'])}"
-            )
-
-            self.views_label.configure(
-                text=f"Views : {format_views(info['views'])}"
-            )
-
-            self.upload_label.configure(
-                text=f"Upload : {format_date(info['upload_date'])}"
-            )
-
-            self.resolution_label.configure(
-                text=f"Resolution : {info['resolution']}  |  {info['fps']} FPS"
-            )
-
-            self.progress.set(1)
-
-            self.status.configure(
-                text="Analyze Complete ✅"
-            )
-
-        except Exception as e:
-
-            self.progress.set(0)
-
-            self.status.configure(
-                text=f"Error : {e}"
-            )
-
-        finally:
-
-            self.analyze_btn.configure(state="normal")
-
-    # ======================================================
-    # DOWNLOAD
-    # ======================================================
-
-    def start_download(self):
-
-        threading.Thread(
-            target=self.process_download,
-            daemon=True
-        ).start()
-
-    def process_download(self):
-
-        url = self.url_entry.get().strip()
-
-        if url == "":
-            self.status.configure(
-                text="Please paste a YouTube URL."
-            )
-            return
-
-        self.download_btn.configure(state="disabled")
-
-        self.progress.set(0.10)
-
-        self.status.configure(
-            text="Downloading..."
-        )
-
-        try:
-
-            project = Path("temp/gui_project")
-
-            video = download_video(
-
-            url=url,
-
-            output_dir=project
-
-    )
-
-            self.progress.set(1)
-
-            self.status.configure(
-
-            text=f"Download Complete\n{video}"
-
-    )
-
-        except Exception as e:
-
-            self.progress.set(0)
-
-            self.status.configure(
-                text=f"Error : {e}"
-            )
-
-        finally:
-
-            self.download_btn.configure(state="normal")
-
-    # ======================================================
-    # RESET
-    # ======================================================
-
-    def reset_video_info(self):
-
-        self.title_label.configure(text="Title : -")
-        self.channel_label.configure(text="Channel : -")
-        self.duration_label.configure(text="Duration : -")
-        self.views_label.configure(text="Views : -")
-        self.upload_label.configure(text="Upload : -")
-        self.resolution_label.configure(text="Resolution : -")
-
-        self.progress.set(0)
-
-        self.status.configure(text="Ready...")
-
-    # ======================================================
-    # RUN
-    # ======================================================
-
     
-    def run(self):
+    # ==================================================
+    # Log
+    # ==================================================
 
-        self.mainloop()
+    def write_log(self, message):
+
+        self.log.append(message)
+
+        self.log.ensureCursorVisible()
+
+        progress_map = {
+
+            "Analyzing": 10,
+
+            "Creating project": 15,
+
+            "Downloading": 25,
+
+            "Transcribing": 40,
+
+            "Building stories": 55,
+
+            "Ranking stories": 65,
+
+            "Building timeline": 75,
+
+            "Generating clips": 90,
+
+            "Rendering subtitles": 98,
+
+            "Completed": 100,
+
+        }
+
+        for key, value in progress_map.items():
+
+            if key in message:
+
+                self.progress.setValue(value)
+
+                break
+    # ==================================================
+    # Thumbnail
+    # ==================================================
+
+    def load_thumbnail(self, url):
+
+        if not url:
+            return
+
+        try:
+
+            data = urlopen(url).read()
+
+            pixmap = QPixmap()
+
+            pixmap.loadFromData(
+                QByteArray(data)
+            )
+
+            self.thumbnail.setPixmap(
+
+                pixmap.scaled(
+
+                    self.thumbnail.size(),
+
+                    Qt.KeepAspectRatio,
+
+                    Qt.SmoothTransformation,
+
+                )
+
+            )
+
+        except Exception:
+
+            self.thumbnail.setText(
+                "Thumbnail"
+            )    
+
+    # ==================================================
+    # Analyze
+    # ==================================================
+
+    def analyze_clicked(self):
+
+        url = self.url_edit.text().strip()
+       
+
+        if not url:
+
+            QMessageBox.warning(
+                self,
+                "URL",
+                "Please enter YouTube URL."
+            )
+
+            return
+
+        self.current_url = url
+
+        try:
+
+            self.analyze_button.setEnabled(False)
+            self.progress.setValue(0)
 
 
-# ======================================================
-# ENTRY POINT
-# ======================================================
 
-if __name__ == "__main__":
+            self.status.showMessage(
+                "Analyzing..."
+            )
 
-    app = MainWindow()
+            self.write_log(
+                "[INFO] Analyzing video..."
+            )
 
-    app.run()
+            
+
+            self.video_info = analyze_video(url)
+
+            info = self.video_info
+
+            self.title_label.setText(
+                info.get("title", "-")
+            )
+
+            self.channel_label.setText(
+                info.get("uploader", "-")
+            )
+
+            self.duration_label.setText(
+                str(info.get("duration", "-"))
+            )
+
+            self.language_label.setText(
+                info.get("language", "-")
+            )
+
+            self.load_thumbnail(
+                info.get("thumbnail")
+            )
+
+            self.status_label.setText(
+                "Ready to Start"
+            )
+
+            self.start_button.setEnabled(True)
+
+            self.write_log(
+                "[SUCCESS] Analyze completed."
+            )
+
+            self.progress.setValue(100)
+
+            self.status.showMessage(
+                "Ready"
+            )
+
+
+        except Exception as e:
+
+            self.video_info = None
+            self.current_url = ""
+
+            self.progress.setValue(0)
+
+            self.title_label.setText("-")
+            self.channel_label.setText("-")
+            self.duration_label.setText("-")
+            self.language_label.setText("-")
+            self.thumbnail.clear()
+
+            self.thumbnail.setText(
+                "Thumbnail"
+            )
+
+            self.status_label.setText("Error")
+
+            self.start_button.setEnabled(False)
+
+
+            QMessageBox.critical(
+                self,
+                "Error",
+                str(e)
+            )
+
+            self.write_log(
+                f"[ERROR] {e}"
+            )
+
+            self.status.showMessage(
+                "Error"
+            )
+
+        finally:
+
+            self.analyze_button.setEnabled(True)
+
+    # ==================================================
+    # Start Pipeline
+    # ==================================================
+
+    def start_pipeline(self):
+
+        if self.thread is not None:
+
+            return
+
+        if not self.current_url:
+
+            return
+
+        self.progress.setValue(0)
+
+        self.start_button.setEnabled(False)
+
+        self.stop_button.setEnabled(True)
+
+        self.write_log(
+            "[SYSTEM] Starting pipeline..."
+        )
+
+        self.status_label.setText(
+            "Running"
+        )
+
+        self.status.showMessage(
+            "Running"
+        )
+
+        #
+        # Thread
+        #
+
+        self.thread = QThread()
+
+        self.worker = PipelineWorker(
+            self.current_url
+        )
+
+        self.worker.moveToThread(
+            self.thread
+        )
+
+        #
+        # Connections
+        #
+
+        self.thread.started.connect(
+            self.worker.run
+        )
+
+        self.worker.log.connect(
+            self.write_log
+        )
+
+        self.worker.finished.connect(
+            self.pipeline_finished
+        )
+
+        self.worker.error.connect(
+            self.pipeline_error
+        )
+
+        self.worker.error.connect(
+            self.thread.quit
+        )
+
+        self.worker.error.connect(
+            self.worker.deleteLater
+        )
+
+        #
+        # Cleanup
+        #
+
+        self.worker.finished.connect(
+            self.thread.quit
+        )
+
+        self.worker.finished.connect(
+            self.worker.deleteLater
+        )
+
+        self.thread.finished.connect(
+            self.thread.deleteLater
+        )
+
+        self.thread.finished.connect(
+            lambda: setattr(
+                self,
+                "thread",
+                None,
+            )
+        )
+
+        self.thread.finished.connect(
+            lambda: setattr(
+                self,
+                "worker",
+                None,
+            )
+        )
+
+        self.thread.start()
+
+    # ==================================================
+    # Pipeline Finished
+    # ==================================================
+
+    def pipeline_finished(self, context):
+
+        self.write_log(
+            "[SUCCESS] Pipeline completed."
+        )
+
+        self.project_path = context.project_path
+        self.progress.setValue(100)
+
+        self.start_button.setEnabled(True)
+
+        self.stop_button.setEnabled(False)
+
+        self.status.showMessage(
+            "Completed"
+        )
+
+        self.status_label.setText(
+            "Completed"
+        )
+
+
+
+        # ==================================================
+        # Pipeline Error
+        # ==================================================
+
+    def pipeline_error(self, message):
+
+        self.start_button.setEnabled(True)
+
+        self.stop_button.setEnabled(False)
+
+        if "Pipeline cancelled" in message:
+
+            self.write_log(
+                "[SYSTEM] Pipeline cancelled."
+            )
+
+            self.status.showMessage(
+                "Cancelled"
+            )
+
+            self.status_label.setText(
+                "Cancelled"
+            )
+
+            self.progress.setValue(0)
+
+        else:
+
+            QMessageBox.critical(
+                self,
+                "Pipeline Error",
+                message
+            )
+
+            self.write_log(
+                f"[ERROR] {message}"
+            )
+
+            self.status.showMessage(
+                "Error"
+            )
+
+            self.status_label.setText(
+                "Error"
+            )
+
+            self.progress.setValue(0)
+
+        self.thread = None
+
+        self.worker = None
+
+    # ==================================================
+    # Open Project Folder
+    # ==================================================
+
+    def open_project_folder(self):
+
+        if not self.project_path:
+
+            QMessageBox.information(
+                self,
+                "Project",
+                "No project available."
+            )
+
+            return
+
+        path = Path(self.project_path)
+
+        if not path.exists():
+
+            QMessageBox.warning(
+                self,
+                "Project",
+                "Project folder not found."
+            )
+
+            return
+
+        os.startfile(path)
+    # ==================================================
+    # Stop Pipeline
+    # ==================================================
+
+    def stop_pipeline(self):
+
+        if self.worker is None:
+
+            return
+
+        self.write_log(
+            "[SYSTEM] Cancelling pipeline..."
+        )
+
+        self.worker.cancel()
+
+        self.stop_button.setEnabled(False)
+
+        self.status.showMessage(
+            "Cancelling..."
+        )
