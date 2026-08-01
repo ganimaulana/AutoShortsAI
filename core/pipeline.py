@@ -9,6 +9,7 @@ Pipeline
 ==================================================
 """
 
+from copy import deepcopy
 from domain.project_context import ProjectContext
 
 from core.analyzer import analyze_video
@@ -231,10 +232,70 @@ class Pipeline:
                 f"{clip_file.stem}_sub{clip_file.suffix}"
             )
 
+            logger.info("=" * 60)
+            logger.info(f"Story ID: {story.id}")
+            logger.info(f"Clip File: {clip_file}")
+            logger.info(f"Timeline: {timeline.start} -> {timeline.end}")
+            logger.info(f"Story Segments: {len(story.segments)}")
+
+            for seg in story.segments:
+                logger.info(
+                    f"{seg.start:.2f} -> {seg.end:.2f} | {seg.text[:80]}"
+                )
+
+            #
+            # Offset subtitle ke waktu clip
+            #
+
+            offset_segments = []
+
+            clip_start = timeline.start
+            clip_end = timeline.end
+
+            for seg in story.segments:
+
+                #
+                # Lewati jika benar-benar di luar clip
+                #
+
+                if seg.end < clip_start:
+                    continue
+
+                if seg.start > clip_end:
+                    continue
+
+                new_seg = deepcopy(seg)
+
+                #
+                # Offset timestamp
+                #
+
+                new_seg.start = max(
+                    0.0,
+                    seg.start - clip_start,
+                )
+
+                new_seg.end = max(
+                    new_seg.start + 0.01,
+                    seg.end - clip_start,
+                )
+
+                offset_segments.append(
+                    new_seg
+                )
+
+            logger.info(
+                f"Subtitle Offset Segments: {len(offset_segments)}"
+            )
+
             self.subtitle_engine.process(
+
                 input_video=clip_file,
-                segments=story.segments,
+
+                segments=offset_segments,
+
                 output_video=output_video,
+
             )
 
             self.check_cancel()
