@@ -1,13 +1,24 @@
 """
 ==================================================
-Gani Creative Studio
-Powered by Naraseta
+Naraseta Studio
+AI Video Automation Platform
 
-AutoShortsAI
-
-Main Window
+by Gani Creative Studio
 ==================================================
 """
+import qtawesome as qta
+
+from gui.widgets.log_console import LogConsole
+from gui.widgets.progress_card import ProgressCard
+from gui.widgets.thumbnail_widget import ThumbnailWidget
+from gui.widgets.info_card import InfoCard
+
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+)
+from gui.widgets.header import Header
+from gui.widgets.url_card import UrlCard
+from gui.widgets.card import Card
 
 from PySide6.QtCore import (
     Qt,
@@ -28,19 +39,20 @@ from gui.worker import PipelineWorker
 from urllib.request import urlopen
 
 from PySide6.QtWidgets import (
+
     QMessageBox,
     QMainWindow,
     QWidget,
-    QLabel,
     QPushButton,
-    QLineEdit,
     QTextEdit,
-    QProgressBar,
+    QLabel,
     QVBoxLayout,
     QHBoxLayout,
-    QGroupBox,
-    QFormLayout,
     QStatusBar,
+    QSplitter,
+    QFrame,
+    QSizePolicy,
+
 )
 
 
@@ -57,9 +69,16 @@ class MainWindow(QMainWindow):
 
         self.project_path = None
 
-        self.setWindowTitle("AutoShortsAI v0.1")
+        from gui.theme import APP_NAME, VERSION
 
-        self.resize(1200, 800)
+        self.setWindowTitle(
+            f"{APP_NAME} {VERSION}"
+        )
+
+        self.resize(
+            1600,
+            950,
+        )
 
         self.build_ui()
 
@@ -75,246 +94,169 @@ class MainWindow(QMainWindow):
 
         root = QVBoxLayout(central)
 
+        self.root = root
+
         root.setContentsMargins(
-            15,
-            15,
-            15,
-            15,
+            24,
+            24,
+            24,
+            24,
         )
 
-        root.setSpacing(15)
+        root.setSpacing(22)
 
         # -----------------------------------------
         # URL
         # -----------------------------------------
 
-        url_group = QGroupBox("YouTube URL")
+        header = Card()
+        header.setMinimumHeight(120)
+        header.setMaximumHeight(120)
 
-        url_layout = QVBoxLayout(url_group)
-
-        self.url_edit = QLineEdit()
-
-        self.url_edit.setPlaceholderText(
-            "https://youtube.com/watch?v=..."
+        header.layout.addWidget(
+            Header()
         )
 
-        url_layout.addWidget(
-            self.url_edit
+        root.addWidget(
+            header
         )
+
+        # ============================
+        # URL
+        # ============================
+
+        self.url_card = UrlCard()
+        root.addWidget(self.url_card)
+
+        # ============================
+        # BUTTON
+        # ============================
 
         button_layout = QHBoxLayout()
 
-        self.analyze_button = QPushButton(
-            "Analyze"
-        )
+        button_layout.setSpacing(12)
 
-        self.analyze_button.clicked.connect(
-            self.analyze_clicked
-        )
+        # ============================
+        # BUTTON
+        # ============================
 
-        self.start_button = QPushButton(
-            "Start"
+        self.analyze_button = QPushButton("Analyze")
+        self.analyze_button.setIcon(
+            qta.icon("fa5s.search", color="white")
         )
+        self.analyze_button.clicked.connect(self.analyze_clicked)
 
-        self.start_button.clicked.connect(
-            self.start_pipeline
+        self.start_button = QPushButton("Start Pipeline")
+        self.start_button.setIcon(
+            qta.icon("fa5s.play", color="white")
         )
+        self.start_button.clicked.connect(self.start_pipeline)
 
-        self.start_button.setEnabled(False)
-
-        self.stop_button = QPushButton(
-            "Stop"
+        self.stop_button = QPushButton("Stop")
+        self.stop_button.setIcon(
+            qta.icon("fa5s.stop", color="white")
         )
+        self.stop_button.clicked.connect(self.stop_pipeline)
 
         self.stop_button.setEnabled(False)
 
-        self.stop_button.clicked.connect(
-            self.stop_pipeline
+        self.analyze_button.setMinimumHeight(42)
+        self.start_button.setMinimumHeight(42)
+        self.stop_button.setMinimumHeight(42)
+
+        self.analyze_button.setFixedSize(
+            170,
+            46,
         )
 
-        button_layout.addWidget(
-            self.analyze_button
+        self.start_button.setFixedSize(
+            200,
+            46,
         )
 
-        button_layout.addWidget(
-            self.start_button
+        self.stop_button.setFixedSize(
+            150,
+            46,
         )
+        self.start_button.setMinimumWidth(180)
+        self.stop_button.setMinimumWidth(140)
 
-        button_layout.addWidget(
-            self.stop_button
-        )
+        button_layout.addWidget(self.analyze_button)
+        button_layout.addWidget(self.start_button)
+        button_layout.addWidget(self.stop_button)
 
-        button_layout.addStretch()
+        button_layout.addStretch(1)
 
-        url_layout.addLayout(
-            button_layout
-        )
+        root.addLayout(button_layout)
 
-        root.addWidget(
-            url_group
-        )
+        # ======================================
+        # PREVIEW AREA
+        # ======================================
 
-        # -----------------------------------------
-        # Project
-        # -----------------------------------------
+        preview_card = Card()
 
-        project_group = QGroupBox(
-            "Project Information"
-        )
+        preview_layout = QHBoxLayout()
 
-        project_layout = QHBoxLayout(
-            project_group
-        )
+        preview_layout.setContentsMargins(0,0,0,0)
 
-        #
-        # Thumbnail
-        #
+        preview_layout.setSpacing(24)
 
-        self.thumbnail = QLabel(
-            "Thumbnail"
-        )
-
-        self.thumbnail.setAlignment(
-            Qt.AlignCenter
-        )
+        self.thumbnail = ThumbnailWidget()
 
         self.thumbnail.setFixedSize(
-            220,
-            124,
+            360,
+            202,
         )
 
-        self.thumbnail.setStyleSheet(
-            """
-            background:#3b3b3b;
-            border:1px solid gray;
-            border-radius:6px;
-            """
+        self.info_card = InfoCard()
+
+        self.info_card.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Preferred,
         )
 
-        project_layout.addWidget(
+        preview_layout.addWidget(
             self.thumbnail
         )
 
-        #
-        # Metadata
-        #
-
-        form = QFormLayout()
-
-        self.title_label = QLabel("-")
-
-        self.channel_label = QLabel("-")
-
-        self.duration_label = QLabel("-")
-
-        self.language_label = QLabel("-")
-
-        self.status_label = QLabel(
-            "Ready"
+        preview_layout.addWidget(
+            self.info_card,
+            1,
         )
 
-        form.addRow(
-            "Title",
-            self.title_label,
-        )
-
-        form.addRow(
-            "Channel",
-            self.channel_label,
-        )
-
-        form.addRow(
-            "Duration",
-            self.duration_label,
-        )
-
-        form.addRow(
-            "Language",
-            self.language_label,
-        )
-
-        form.addRow(
-            "Status",
-            self.status_label,
-        )
-
-        project_layout.addLayout(
-            form
+        preview_card.layout.addLayout(
+            preview_layout
         )
 
         root.addWidget(
-            project_group
+            preview_card
         )
-
         # -----------------------------------------
         # Progress
         # -----------------------------------------
 
-        progress_group = QGroupBox(
-            "Progress"
-        )
-
-        progress_layout = QVBoxLayout(
-            progress_group
-        )
-
-        self.progress = QProgressBar()
-
-        self.progress.setRange(
-            0,
-            100,
-        )
-
-        
-        self.progress.setValue(
-            0
-        )
-
-        progress_layout.addWidget(
-            self.progress
-        )
+        self.progress_card = ProgressCard()
+        self.progress_card.setMinimumHeight(170)
 
         root.addWidget(
-            progress_group
-        )
-
-
-        # -----------------------------------------
-        # Log
-        # -----------------------------------------
-
-        log_group = QGroupBox(
-            "Log"
-        )
-
-        log_layout = QVBoxLayout(
-            log_group
-        )
-
-        self.log = QTextEdit()
-
-        self.log.setReadOnly(True)
-
-        log_layout.addWidget(
-            self.log
-        )
-
-        self.write_log(
-            "[SYSTEM] Welcome to AutoShortsAI"
-        )
-
-        self.write_log(
-            "[SYSTEM] Ready."
-        )
-
-        
-
-        root.addWidget(
-            log_group
-        )
+            self.progress_card
+        )     
 
         # -----------------------------------------
-        # Bottom
+        # LOG
+        # -----------------------------------------
+        log_title = QLabel("🖥 System Console")
+
+        log_title.setObjectName("CardTitle")
+
+        root.addWidget(log_title)
+        self.log_console = LogConsole()
+        self.log_console.setMinimumHeight(260)
+
+        root.addWidget(self.log_console)
+
+        # -----------------------------------------
+        # BOTTOM
         # -----------------------------------------
 
         bottom = QHBoxLayout()
@@ -333,26 +275,22 @@ class MainWindow(QMainWindow):
             self.open_project_button
         )
 
-        root.addLayout(
-            bottom
-        )
+        root.addLayout(bottom)
 
         # -----------------------------------------
-        # Status Bar
+        # STATUS BAR
         # -----------------------------------------
 
         self.status = QStatusBar()
 
-        self.setStatusBar(
-            self.status
-        )
+        self.setStatusBar(self.status)
 
         self.status.showMessage(
-            "Ready"
+            "Ready | Whisper | Ollama | Naraseta Studio"
         )
 
         # -----------------------------------------
-        # Menu
+        # MENU
         # -----------------------------------------
 
         about_action = QAction(
@@ -362,23 +300,17 @@ class MainWindow(QMainWindow):
 
         menu = self.menuBar()
 
-        help_menu = menu.addMenu(
-            "Help"
-        )
+        help_menu = menu.addMenu("Help")
 
-        help_menu.addAction(
-            about_action
-        )
-    
-    # ==================================================
-    # Log
-    # ==================================================
+        help_menu.addAction(about_action)
+
+        
 
     def write_log(self, message):
 
-        self.log.append(message)
-
-        self.log.ensureCursorVisible()
+        self.log_console.append(
+            message
+        )
 
         progress_map = {
 
@@ -408,7 +340,9 @@ class MainWindow(QMainWindow):
 
             if key in message:
 
-                self.progress.setValue(value)
+                self.progress_card.set_progress(value)
+
+                self.progress_card.set_status(key)
 
                 break
     # ==================================================
@@ -430,19 +364,7 @@ class MainWindow(QMainWindow):
                 QByteArray(data)
             )
 
-            self.thumbnail.setPixmap(
-
-                pixmap.scaled(
-
-                    self.thumbnail.size(),
-
-                    Qt.KeepAspectRatio,
-
-                    Qt.SmoothTransformation,
-
-                )
-
-            )
+            self.thumbnail.setPixmap(pixmap)
 
         except Exception:
 
@@ -456,7 +378,7 @@ class MainWindow(QMainWindow):
 
     def analyze_clicked(self):
 
-        url = self.url_edit.text().strip()
+        url = self.url_card.text()
        
 
         if not url:
@@ -474,7 +396,7 @@ class MainWindow(QMainWindow):
         try:
 
             self.analyze_button.setEnabled(False)
-            self.progress.setValue(0)
+            self.progress_card.set_progress(0)
 
 
 
@@ -482,6 +404,10 @@ class MainWindow(QMainWindow):
                 "Analyzing..."
             )
 
+            self.progress_card.set_status(
+                "Analyzing..."
+            )
+            
             self.write_log(
                 "[INFO] Analyzing video..."
             )
@@ -492,29 +418,34 @@ class MainWindow(QMainWindow):
 
             info = self.video_info
 
-            self.title_label.setText(
-                info.get("title", "-")
-            )
+            metadata = {
 
-            self.channel_label.setText(
-                info.get("uploader", "-")
-            )
+                "title": info.get("title", "-"),
 
-            self.duration_label.setText(
-                str(info.get("duration", "-"))
-            )
+                "channel": info.get("uploader", "-"),
 
-            self.language_label.setText(
-                info.get("language", "-")
-            )
+                "views_text": info.get("views_text", "-"),
 
+                "duration_text": info.get("duration_text", "-"),
+
+                "language": info.get("language", "-"),
+
+                "upload_date": info.get("upload_date", "-"),
+
+                "resolution": info.get("resolution", "-"),
+
+            }
+
+            self.info_card.update_info(
+                metadata
+            )
             self.load_thumbnail(
                 info.get("thumbnail")
             )
 
-            self.status_label.setText(
-                "Ready to Start"
-            )
+        #    self.status_label.setText(
+        #        "Ready to Start"
+        #    )
 
             self.start_button.setEnabled(True)
 
@@ -522,9 +453,13 @@ class MainWindow(QMainWindow):
                 "[SUCCESS] Analyze completed."
             )
 
-            self.progress.setValue(100)
+            self.progress_card.set_progress(100)
 
             self.status.showMessage(
+                "Ready"
+            )
+
+            self.progress_card.set_status(
                 "Ready"
             )
 
@@ -534,19 +469,16 @@ class MainWindow(QMainWindow):
             self.video_info = None
             self.current_url = ""
 
-            self.progress.setValue(0)
+            self.progress_card.set_progress(0)
 
-            self.title_label.setText("-")
-            self.channel_label.setText("-")
-            self.duration_label.setText("-")
-            self.language_label.setText("-")
+            self.info_card.update_info({})
             self.thumbnail.clear()
 
             self.thumbnail.setText(
-                "Thumbnail"
+                "No Thumbnail"
             )
 
-            self.status_label.setText("Error")
+        #    self.status_label.setText("Error")
 
             self.start_button.setEnabled(False)
 
@@ -562,6 +494,10 @@ class MainWindow(QMainWindow):
             )
 
             self.status.showMessage(
+                "Error"
+            )
+
+            self.progress_card.set_status(
                 "Error"
             )
 
@@ -583,7 +519,7 @@ class MainWindow(QMainWindow):
 
             return
 
-        self.progress.setValue(0)
+        self.progress_card.set_progress(0)
 
         self.start_button.setEnabled(False)
 
@@ -593,11 +529,15 @@ class MainWindow(QMainWindow):
             "[SYSTEM] Starting pipeline..."
         )
 
-        self.status_label.setText(
+    #    self.status_label.setText(
+    #        "Running"
+    #    )
+
+        self.status.showMessage(
             "Running"
         )
 
-        self.status.showMessage(
+        self.progress_card.set_status(
             "Running"
         )
 
@@ -688,7 +628,7 @@ class MainWindow(QMainWindow):
         )
 
         self.project_path = context.project_path
-        self.progress.setValue(100)
+        self.progress_card.set_progress(100)
 
         self.start_button.setEnabled(True)
 
@@ -698,9 +638,13 @@ class MainWindow(QMainWindow):
             "Completed"
         )
 
-        self.status_label.setText(
+        self.progress_card.set_status(
             "Completed"
         )
+
+    #    self.status_label.setText(
+    #        "Completed"
+    #    )
 
 
 
@@ -724,11 +668,15 @@ class MainWindow(QMainWindow):
                 "Cancelled"
             )
 
-            self.status_label.setText(
+            self.progress_card.set_status(
                 "Cancelled"
             )
 
-            self.progress.setValue(0)
+        #    self.status_label.setText(
+        #        "Cancelled"
+        #    )
+
+            self.progress_card.set_progress(0)
 
         else:
 
@@ -746,11 +694,11 @@ class MainWindow(QMainWindow):
                 "Error"
             )
 
-            self.status_label.setText(
-                "Error"
-            )
+        #    self.status_label.setText(
+        #        "Error"
+        #    )
 
-            self.progress.setValue(0)
+            self.progress_card.set_progress(0)
 
         self.thread = None
 

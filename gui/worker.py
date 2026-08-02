@@ -9,6 +9,8 @@ Pipeline Worker
 ==================================================
 """
 
+import traceback
+
 from PySide6.QtCore import QObject
 from PySide6.QtCore import Signal
 from PySide6.QtCore import Slot
@@ -39,11 +41,13 @@ class PipelineWorker(QObject):
         from core.cancel_token import CancelToken
 
         self.cancel_token = CancelToken()
+
     # ---------------------------------------------
 
     def cancel(self):
 
         self.cancel_token.cancel()
+
     # ---------------------------------------------
 
     @Slot()
@@ -66,6 +70,10 @@ class PipelineWorker(QObject):
 
         except Exception as e:
 
+            # Print traceback lengkap ke terminal
+            traceback.print_exc()
+
+            # Kirim traceback lengkap ke GUI
             self.error.emit(
-                str(e)
+                f"{str(e)}\n\n{traceback.format_exc()}"
             )

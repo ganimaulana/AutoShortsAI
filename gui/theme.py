@@ -1,45 +1,59 @@
 """
-AutoShortsAI Theme
+==================================================
+Naraseta Studio Theme
+==================================================
 """
 
-DARK_THEME = """
-QWidget{
-    background:#202124;
-    color:white;
-    font-size:10pt;
-}
+from PySide6.QtGui import QFont
 
-QLineEdit{
-    padding:8px;
-    border:1px solid #555;
-    border-radius:6px;
-    background:#2d2f31;
-}
+# =====================================================
+# APP
+# =====================================================
 
-QPushButton{
-    background:#2d89ef;
-    border:none;
-    border-radius:6px;
-    padding:10px;
-    font-weight:bold;
-}
+APP_NAME = "Naraseta Studio"
 
-QPushButton:hover{
-    background:#4aa3ff;
-}
+APP_SUBTITLE = "AI Video Automation Platform"
 
-QProgressBar{
-    border:1px solid #555;
-    border-radius:6px;
-    text-align:center;
-}
+APP_AUTHOR = "by Gani Creative Studio"
 
-QProgressBar::chunk{
-    background:#2d89ef;
-}
+VERSION = "v2.0.0"
 
-QTextEdit{
-    background:#151515;
-    border:1px solid #444;
-}
-"""
+
+# =====================================================
+# COLORS
+# =====================================================
+
+BG = "#18181B"
+
+CARD = "#27272A"
+
+CARD_HOVER = "#323238"
+
+BORDER = "#3F3F46"
+
+TEXT = "#FAFAFA"
+
+TEXT_SECONDARY = "#A1A1AA"
+
+TEXT_HINT = "#71717A"
+
+PRIMARY = "#3B82F6"
+
+SUCCESS = "#22C55E"
+
+WARNING = "#F59E0B"
+
+DANGER = "#EF4444"
+
+
+# =====================================================
+# FONTS
+# =====================================================
+
+TITLE_FONT = QFont("Segoe UI", 24, QFont.Bold)
+
+HEADER_FONT = QFont("Segoe UI", 18, QFont.Bold)
+
+BODY_FONT = QFont("Segoe UI", 11)
+
+SMALL_FONT = QFont("Segoe UI", 10)

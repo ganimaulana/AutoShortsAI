@@ -1,0 +1,173 @@
+QMainWindow{
+
+    background:#18181B;
+
+}
+
+QWidget{
+
+    color:#FAFAFA;
+
+    font-family:"Segoe UI";
+
+    font-size:11pt;
+
+}
+
+QFrame#Card{
+
+    background:#27272A;
+
+    border:1px solid #3F3F46;
+
+    border-radius:14px;
+
+}
+
+QFrame#Card:hover{
+
+    border:1px solid #52525B;
+
+}
+
+QPushButton{
+
+    background:#2563EB;
+
+    border:none;
+
+    border-radius:12px;
+
+    color:white;
+
+    min-height:46px;
+
+    padding-left:20px;
+
+    padding-right:20px;
+
+    font-weight:bold;
+
+}
+
+QPushButton:hover{
+
+    background:#3B82F6;
+
+}
+
+QPushButton:pressed{
+
+    background:#1D4ED8;
+
+}
+
+QLineEdit{
+
+    background:#202024;
+
+    border:1px solid #3F3F46;
+
+    border-radius:12px;
+
+    min-height:48px;
+
+    padding-left:16px;
+
+    color:white;
+
+}
+
+QTextEdit{
+
+    background:#111113;
+
+    border:none;
+
+    border-radius:14px;
+
+    color:white;
+
+}
+
+QProgressBar{
+
+    border:none;
+
+    background:#3F3F46;
+
+    border-radius:9px;
+
+    min-height:18px;
+
+}
+
+QProgressBar::chunk{
+
+    background:#22C55E;
+
+    border-radius:9px;
+
+}
+
+QLabel#SectionTitle{
+
+    font-size:18pt;
+
+    font-weight:700;
+
+    color:white;
+
+}
+
+QLabel#StatusChip{
+
+    background:#1F2937;
+
+    border-radius:10px;
+
+    padding:6px 12px;
+
+    color:white;
+
+    font-size:10pt;
+
+    font-weight:bold;
+
+}
+
+QLabel#ProgressPercent{
+
+    font-size:16pt;
+
+    font-weight:bold;
+
+    color:#3B82F6;
+
+}
+
+QLabel#HeaderTitle{
+
+    font-size:28px;
+
+    font-weight:700;
+
+    color:#FAFAFA;
+
+}
+
+QLabel#HeaderSubtitle{
+
+    font-size:13px;
+
+    color:#A1A1AA;
+
+}
+
+QLabel#VersionLabel{
+
+    color:#71717A;
+
+    font-size:11px;
+
+}

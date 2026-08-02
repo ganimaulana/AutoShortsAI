@@ -1,0 +1,34 @@
+from enum import Enum
+
+
+class JobStatus(str, Enum):
+    """
+    Status lifecycle sebuah Job.
+    Semua Pipeline wajib mengikuti urutan ini.
+    """
+
+    PENDING = "PENDING"
+
+    ANALYZING = "ANALYZING"
+
+    DOWNLOADING = "DOWNLOADING"
+
+    TRANSCRIBING = "TRANSCRIBING"
+
+    CORRECTING_SUBTITLE = "CORRECTING_SUBTITLE"
+
+    DETECTING_TOPICS = "DETECTING_TOPICS"
+
+    GENERATING_CANDIDATES = "GENERATING_CANDIDATES"
+
+    REVIEWING = "REVIEWING"
+
+    RENDERING = "RENDERING"
+
+    UPLOADING = "UPLOADING"
+
+    COMPLETED = "COMPLETED"
+
+    FAILED = "FAILED"
+
+    CANCELLED = "CANCELLED"
