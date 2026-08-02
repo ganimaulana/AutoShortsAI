@@ -1,69 +1,96 @@
-"""
-==================================================
-Naraseta Studio
-
-Log Console
-==================================================
-"""
+from PySide6.QtGui import QTextCursor
+from PySide6.QtWidgets import QTextEdit
 
 from datetime import datetime
 
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (
-    QTextEdit,
-    QVBoxLayout,
-)
-
 from gui.widgets.card import Card
-from gui.widgets.section_title import SectionTitle
 
 
 class LogConsole(Card):
 
     def __init__(self):
-
         super().__init__()
-
-        SectionTitle(
-            "📜 System Log"
-        )
 
         self.console = QTextEdit()
 
         self.console.setReadOnly(True)
 
-        self.layout.addWidget(
-            self.console
-        )
+        self.console.setObjectName("LogConsole")
 
-    def append(self, message):
+        self.layout.addWidget(self.console)
 
-        timestamp = datetime.now().strftime("%H:%M:%S")
+    # =====================================
 
-        color = "#FFFFFF"
+    def append(self, text):
 
-        if "[ERROR]" in message:
-            color = "#EF4444"
+        now = datetime.now().strftime("%H:%M:%S")
 
-        elif "[SUCCESS]" in message:
+        color = "#E5E7EB"
+
+        icon = "•"
+
+        upper = text.upper()
+
+        if "SUCCESS" in upper:
+
             color = "#22C55E"
 
-        elif "[INFO]" in message:
-            color = "#3B82F6"
+            icon = "✔"
 
-        elif "[SYSTEM]" in message:
-            color = "#A1A1AA"
+        elif "ERROR" in upper:
 
-        self.console.append(
+            color = "#EF4444"
 
-            f'<span style="color:{color}">'
-            f'[{timestamp}] {message}'
-            f'</span>'
+            icon = "✖"
 
+        elif "WARNING" in upper:
+
+            color = "#F59E0B"
+
+            icon = "⚠"
+
+        elif "INFO" in upper:
+
+            color = "#38BDF8"
+
+            icon = "ℹ"
+
+        elif "SYSTEM" in upper:
+
+            color = "#A855F7"
+
+            icon = "⚙"
+
+        html = f"""
+<div style="
+margin-bottom:6px;
+font-family:Consolas;
+font-size:12px;
+">
+
+<span style="color:#6B7280;">
+[{now}]
+</span>
+
+<span style="color:{color};font-weight:bold;">
+{icon}
+</span>
+
+<span style="color:white;">
+{text}
+</span>
+
+</div>
+"""
+
+        self.console.insertHtml(html)
+
+        self.console.moveCursor(
+            QTextCursor.End
         )
 
-        self.console.ensureCursorVisible()
+    # =====================================
 
-    def clear_console(self):
+    def clear(self):
 
         self.console.clear()

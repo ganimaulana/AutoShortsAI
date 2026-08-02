@@ -39,15 +39,20 @@ from gui.worker import PipelineWorker
 from urllib.request import urlopen
 
 from PySide6.QtWidgets import (
+
     QMessageBox,
     QMainWindow,
     QWidget,
     QPushButton,
     QTextEdit,
+    QLabel,
     QVBoxLayout,
     QHBoxLayout,
-    QGroupBox,
     QStatusBar,
+    QSplitter,
+    QFrame,
+    QSizePolicy,
+
 )
 
 
@@ -70,7 +75,10 @@ class MainWindow(QMainWindow):
             f"{APP_NAME} {VERSION}"
         )
 
-        self.resize(1200, 800)
+        self.resize(
+            1600,
+            950,
+        )
 
         self.build_ui()
 
@@ -86,20 +94,24 @@ class MainWindow(QMainWindow):
 
         root = QVBoxLayout(central)
 
+        self.root = root
+
         root.setContentsMargins(
-            15,
-            15,
-            15,
-            15,
+            24,
+            24,
+            24,
+            24,
         )
 
-        root.setSpacing(15)
+        root.setSpacing(22)
 
         # -----------------------------------------
         # URL
         # -----------------------------------------
 
         header = Card()
+        header.setMinimumHeight(120)
+        header.setMaximumHeight(120)
 
         header.layout.addWidget(
             Header()
@@ -109,132 +121,142 @@ class MainWindow(QMainWindow):
             header
         )
 
-        root.addSpacing(15)
+        # ============================
+        # URL
+        # ============================
 
         self.url_card = UrlCard()
-        content = QHBoxLayout()
+        root.addWidget(self.url_card)
 
-        self.thumbnail = ThumbnailWidget()
-
-        self.info_card = InfoCard()
-
-        content.addWidget(
-            self.thumbnail,
-            1,
-        )
-
-        content.addWidget(
-            self.info_card,
-            2,
-        )
-
-        root.addLayout(content)
-
-        root.addWidget(
-            self.url_card
-        )
+        # ============================
+        # BUTTON
+        # ============================
 
         button_layout = QHBoxLayout()
 
+        button_layout.setSpacing(12)
+
+        # ============================
+        # BUTTON
+        # ============================
+
         self.analyze_button = QPushButton("Analyze")
-
         self.analyze_button.setIcon(
-            qta.icon(
-                "fa5s.search",
-                color="white",
-            )
+            qta.icon("fa5s.search", color="white")
         )
+        self.analyze_button.clicked.connect(self.analyze_clicked)
 
-        self.analyze_button.clicked.connect(
-            self.analyze_clicked
-        )
-
-        self.start_button = QPushButton(
-            "Start Pipeline"
-        )
-
+        self.start_button = QPushButton("Start Pipeline")
         self.start_button.setIcon(
-            qta.icon(
-                "fa5s.play",
-                color="white",
-            )
+            qta.icon("fa5s.play", color="white")
         )
+        self.start_button.clicked.connect(self.start_pipeline)
 
-        self.start_button.clicked.connect(
-            self.start_pipeline
-        )
-
-        self.stop_button = QPushButton(
-            "Stop"
-        )
-
+        self.stop_button = QPushButton("Stop")
         self.stop_button.setIcon(
-            qta.icon(
-                "fa5s.stop",
-                color="white",
-            )
+            qta.icon("fa5s.stop", color="white")
         )
+        self.stop_button.clicked.connect(self.stop_pipeline)
+
+        self.stop_button.setEnabled(False)
 
         self.analyze_button.setMinimumHeight(42)
         self.start_button.setMinimumHeight(42)
         self.stop_button.setMinimumHeight(42)
 
-        self.analyze_button.setMinimumWidth(160)
+        self.analyze_button.setFixedSize(
+            170,
+            46,
+        )
+
+        self.start_button.setFixedSize(
+            200,
+            46,
+        )
+
+        self.stop_button.setFixedSize(
+            150,
+            46,
+        )
         self.start_button.setMinimumWidth(180)
         self.stop_button.setMinimumWidth(140)
 
-        self.stop_button.setEnabled(False)
+        button_layout.addWidget(self.analyze_button)
+        button_layout.addWidget(self.start_button)
+        button_layout.addWidget(self.stop_button)
 
-        self.stop_button.clicked.connect(
-            self.stop_pipeline
-        )
-
-        button_layout.addWidget(
-            self.analyze_button
-        )
-
-        button_layout.addWidget(
-            self.start_button
-        )
-
-        button_layout.addWidget(
-            self.stop_button
-        )
-
-        button_layout.addStretch()
+        button_layout.addStretch(1)
 
         root.addLayout(button_layout)
-       
 
-        # -----------------------------------------
-        # Project
-        # -----------------------------------------
+        # ======================================
+        # PREVIEW AREA
+        # ======================================
 
-        
+        preview_card = Card()
 
+        preview_layout = QHBoxLayout()
+
+        preview_layout.setContentsMargins(0,0,0,0)
+
+        preview_layout.setSpacing(24)
+
+        self.thumbnail = ThumbnailWidget()
+
+        self.thumbnail.setFixedSize(
+            360,
+            202,
+        )
+
+        self.info_card = InfoCard()
+
+        self.info_card.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Preferred,
+        )
+
+        preview_layout.addWidget(
+            self.thumbnail
+        )
+
+        preview_layout.addWidget(
+            self.info_card,
+            1,
+        )
+
+        preview_card.layout.addLayout(
+            preview_layout
+        )
+
+        root.addWidget(
+            preview_card
+        )
         # -----------------------------------------
         # Progress
         # -----------------------------------------
 
         self.progress_card = ProgressCard()
+        self.progress_card.setMinimumHeight(170)
 
         root.addWidget(
             self.progress_card
         )     
 
-
         # -----------------------------------------
-        # Log
+        # LOG
         # -----------------------------------------
+        log_title = QLabel("🖥 System Console")
 
+        log_title.setObjectName("CardTitle")
+
+        root.addWidget(log_title)
         self.log_console = LogConsole()
+        self.log_console.setMinimumHeight(260)
 
-        root.addWidget(
-            self.log_console
-        )
+        root.addWidget(self.log_console)
 
         # -----------------------------------------
-        # Bottom
+        # BOTTOM
         # -----------------------------------------
 
         bottom = QHBoxLayout()
@@ -253,28 +275,22 @@ class MainWindow(QMainWindow):
             self.open_project_button
         )
 
-        root.addLayout(
-            bottom
-        )
+        root.addLayout(bottom)
 
         # -----------------------------------------
-        # Status Bar
+        # STATUS BAR
         # -----------------------------------------
 
         self.status = QStatusBar()
 
-        self.setStatusBar(
-            self.status
-        )
+        self.setStatusBar(self.status)
 
         self.status.showMessage(
-
             "Ready | Whisper | Ollama | Naraseta Studio"
-
-            )
+        )
 
         # -----------------------------------------
-        # Menu
+        # MENU
         # -----------------------------------------
 
         about_action = QAction(
@@ -284,17 +300,11 @@ class MainWindow(QMainWindow):
 
         menu = self.menuBar()
 
-        help_menu = menu.addMenu(
-            "Help"
-        )
+        help_menu = menu.addMenu("Help")
 
-        help_menu.addAction(
-            about_action
-        )
-    
-    # ==================================================
-    # Log
-    # ==================================================
+        help_menu.addAction(about_action)
+
+        
 
     def write_log(self, message):
 
@@ -332,6 +342,8 @@ class MainWindow(QMainWindow):
 
                 self.progress_card.set_progress(value)
 
+                self.progress_card.set_status(key)
+
                 break
     # ==================================================
     # Thumbnail
@@ -352,19 +364,7 @@ class MainWindow(QMainWindow):
                 QByteArray(data)
             )
 
-            self.thumbnail.setPixmap(
-
-                pixmap.scaled(
-
-                    self.thumbnail.size(),
-
-                    Qt.KeepAspectRatio,
-
-                    Qt.SmoothTransformation,
-
-                )
-
-            )
+            self.thumbnail.setPixmap(pixmap)
 
         except Exception:
 
@@ -378,7 +378,7 @@ class MainWindow(QMainWindow):
 
     def analyze_clicked(self):
 
-        url = self.url_card.url_edit.text().strip()
+        url = self.url_card.text()
        
 
         if not url:

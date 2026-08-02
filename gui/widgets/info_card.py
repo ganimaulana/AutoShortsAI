@@ -1,80 +1,113 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QLabel,
-    QFormLayout,
+    QWidget,
+    QGridLayout,
 )
 
 from gui.widgets.card import Card
-from gui.widgets.section_title import SectionTitle
-
-from gui.theme import BODY_FONT
 
 
 class InfoCard(Card):
 
     def __init__(self):
-
         super().__init__()
 
-        self.layout.addWidget(
-            SectionTitle(
-                "📄 Video Information"
-            )
-        )
+        title = QLabel("🎬 Video Information")
+        title.setObjectName("CardTitle")
 
-        form = QFormLayout()
-        form.setSpacing(12)
+        self.layout.addWidget(title)
 
-        self.title = QLabel("-")
-        self.channel = QLabel("-")
-        self.views = QLabel("-")
-        self.duration = QLabel("-")
-        self.language = QLabel("-")
-        self.upload = QLabel("-")
-        self.resolution = QLabel("-")
+        self.layout.addSpacing(8)
 
-        labels = [
-            ("Title", self.title),
-            ("Channel", self.channel),
-            ("Views", self.views),
-            ("Duration", self.duration),
-            ("Language", self.language),
-            ("Upload", self.upload),
-            ("Resolution", self.resolution),
+        grid = QGridLayout()
+
+        grid.setHorizontalSpacing(18)
+        grid.setVerticalSpacing(16)
+
+        self.data = {}
+
+        items = [
+
+            ("Title", "title"),
+
+            ("Channel", "channel"),
+
+            ("Views", "views_text"),
+
+            ("Duration", "duration_text"),
+
+            ("Language", "language"),
+
+            ("Upload", "upload_date"),
+
+            ("Resolution", "resolution"),
+
         ]
 
-        for text, widget in labels:
-            widget.setWordWrap(True)
-            widget.setFont(BODY_FONT)
-            form.addRow(text + " :", widget)
+        for row, (label, key) in enumerate(items):
 
-        self.layout.addLayout(form)
+            left = QLabel(label)
 
-    def update_info(self, metadata):
+            left.setObjectName("InfoLabel")
 
-        self.title.setText(
-            metadata.get("title", "-")
-        )
+            value = QLabel("-")
 
-        self.channel.setText(
-            metadata.get("channel", "-")
-        )
+            value.setObjectName("InfoValue")
 
-        self.views.setText(
-            metadata.get("views_text", "-")
-        )
+            value.setWordWrap(True)
 
-        self.duration.setText(
-            metadata.get("duration_text", "-")
-        )
+            value.setAlignment(
+                Qt.AlignLeft | Qt.AlignTop
+            )
 
-        self.language.setText(
-            metadata.get("language", "-")
-        )
+            self.data[key] = value
 
-        self.upload.setText(
-            metadata.get("upload_date", "-")
-        )
+            grid.addWidget(
+                left,
+                row,
+                0,
+            )
 
-        self.resolution.setText(
-            metadata.get("resolution", "-")
-        )
+            grid.addWidget(
+                value,
+                row,
+                1,
+            )
+
+        self.layout.addLayout(grid)
+
+        self.layout.addStretch()
+
+    # ====================================
+
+    def clear(self):
+
+        for widget in self.data.values():
+
+            widget.setText("-")
+
+    # ====================================
+
+    def update_info(self, info):
+
+        if not info:
+
+            self.clear()
+
+            return
+
+        for key, widget in self.data.items():
+
+            widget.setText(
+
+                str(
+
+                    info.get(
+                        key,
+                        "-"
+                    )
+
+                )
+
+            )

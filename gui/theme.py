@@ -1,13 +1,14 @@
 """
 ==================================================
-Naraseta Studio
-
-Theme
+Naraseta Studio Theme
 ==================================================
 """
 
 from PySide6.QtGui import QFont
 
+# =====================================================
+# APP
+# =====================================================
 
 APP_NAME = "Naraseta Studio"
 
@@ -15,54 +16,44 @@ APP_SUBTITLE = "AI Video Automation Platform"
 
 APP_AUTHOR = "by Gani Creative Studio"
 
-VERSION = "v1.0.0"
+VERSION = "v2.0.0"
 
 
-#
+# =====================================================
 # COLORS
-#
+# =====================================================
 
-PRIMARY = "#2563EB"
+BG = "#18181B"
 
-PRIMARY_HOVER = "#3B82F6"
+CARD = "#27272A"
+
+CARD_HOVER = "#323238"
+
+BORDER = "#3F3F46"
+
+TEXT = "#FAFAFA"
+
+TEXT_SECONDARY = "#A1A1AA"
+
+TEXT_HINT = "#71717A"
+
+PRIMARY = "#3B82F6"
 
 SUCCESS = "#22C55E"
 
 WARNING = "#F59E0B"
 
-ERROR = "#EF4444"
-
-CARD = "#23252B"
-
-WINDOW = "#17181C"
-
-TEXT = "#F5F5F5"
-
-TEXT_SECONDARY = "#A1A1AA"
+DANGER = "#EF4444"
 
 
-#
-# Fonts
-#
+# =====================================================
+# FONTS
+# =====================================================
 
-TITLE_FONT = QFont(
-    "Segoe UI Variable",
-    24,
-    QFont.Bold,
-)
+TITLE_FONT = QFont("Segoe UI", 24, QFont.Bold)
 
-HEADER_FONT = QFont(
-    "Segoe UI Variable",
-    16,
-    QFont.Bold,
-)
+HEADER_FONT = QFont("Segoe UI", 18, QFont.Bold)
 
-BODY_FONT = QFont(
-    "Segoe UI Variable",
-    11,
-)
+BODY_FONT = QFont("Segoe UI", 11)
 
-SMALL_FONT = QFont(
-    "Segoe UI Variable",
-    10,
-)
+SMALL_FONT = QFont("Segoe UI", 10)

@@ -1,3 +1,4 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QWidget,
     QLabel,
@@ -5,55 +6,71 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from gui.theme import *
+from gui.theme import (
+    APP_NAME,
+    APP_SUBTITLE,
+    APP_AUTHOR,
+    VERSION,
+)
+
 
 class Header(QWidget):
 
     def __init__(self):
-
         super().__init__()
 
         root = QHBoxLayout(self)
 
-        root.setContentsMargins(0,0,0,0)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(20)
 
-        #
-        # Left
-        #
+        # ==========================================
+        # LEFT
+        # ==========================================
 
         left = QVBoxLayout()
 
-        title = QLabel(APP_NAME)
-        title.setFont(TITLE_FONT)
+        self.title = QLabel(APP_NAME)
+        self.title.setObjectName("HeaderTitle")
 
-        subtitle = QLabel(APP_SUBTITLE)
-        subtitle.setFont(BODY_FONT)
+        self.subtitle = QLabel(APP_SUBTITLE)
+        self.subtitle.setObjectName("HeaderSubtitle")
 
-        author = QLabel(APP_AUTHOR)
-        author.setFont(SMALL_FONT)
+        self.author = QLabel(APP_AUTHOR)
+        self.author.setObjectName("HeaderAuthor")
 
-        left.addWidget(title)
-        left.addWidget(subtitle)
-        left.addWidget(author)
+        left.addWidget(self.title)
+        left.addWidget(self.subtitle)
+        left.addSpacing(6)
+        left.addWidget(self.author)
 
-        #
-        # Right
-        #
+        # ==========================================
+        # RIGHT
+        # ==========================================
 
         right = QVBoxLayout()
 
-        version = QLabel(VERSION)
-        version.setFont(SMALL_FONT)
+        right.setAlignment(Qt.AlignRight | Qt.AlignTop)
 
-        status = QLabel("● Ready")
+        self.ready = QLabel("🟢 READY")
+        self.ready.setObjectName("HeaderReady")
 
-        status.setStyleSheet(
-            "color:#22C55E;"
+        self.version = QLabel(VERSION)
+        self.version.setObjectName("HeaderVersion")
+
+        right.addWidget(
+            self.ready,
+            alignment=Qt.AlignRight
         )
 
-        right.addStretch()
-        right.addWidget(version)
-        right.addWidget(status)
+        right.addSpacing(8)
+
+        right.addWidget(
+            self.version,
+            alignment=Qt.AlignRight
+        )
+
+        # ==========================================
 
         root.addLayout(left)
 
