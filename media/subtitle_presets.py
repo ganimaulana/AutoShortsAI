@@ -9,146 +9,141 @@ Subtitle Presets
 ==================================================
 """
 
+from config import settings
 from media.subtitle_styles import SubtitleStyle
+
+
+def _style(
+    name: str,
+    font: str,
+    size: int,
+    bold: bool,
+    outline: float,
+    shadow: float,
+    margin_v: int,
+) -> SubtitleStyle:
+
+    return SubtitleStyle(
+        name=name,
+        font=font,
+        size=size,
+        bold=bold,
+        outline=outline,
+        shadow=shadow,
+        margin_v=margin_v,
+    )
 
 
 PRESETS = {
 
-    "default": SubtitleStyle(
-
+    "default": _style(
         name="Default",
-
         font="Arial",
-
-        size=58,
-
+        size=settings.subtitle.font_size,
         bold=True,
-
         outline=2.0,
-
         shadow=0.8,
-
-        margin_v=70,
-
+        margin_v=settings.subtitle.margin_bottom,
     ),
 
-    "tiktok": SubtitleStyle(
-
+    "tiktok": _style(
         name="TikTok",
-
         font="Arial",
-
-        size=68,
-
+        size=max(
+            settings.subtitle.font_size,
+            68,
+        ),
         bold=True,
-
         outline=2.5,
-
         shadow=1.2,
-
-        margin_v=110,
-
+        margin_v=max(
+            settings.subtitle.margin_bottom,
+            110,
+        ),
     ),
 
-    "capcut": SubtitleStyle(
-
+    "capcut": _style(
         name="CapCut",
-
         font="Arial",
-
-        size=64,
-
+        size=max(
+            settings.subtitle.font_size,
+            64,
+        ),
         bold=True,
-
         outline=2.0,
-
         shadow=0.5,
-
-        margin_v=90,
-
+        margin_v=max(
+            settings.subtitle.margin_bottom,
+            90,
+        ),
     ),
 
-    "gaming": SubtitleStyle(
-
+    "gaming": _style(
         name="Gaming",
-
         font="Arial",
-
-        size=72,
-
+        size=max(
+            settings.subtitle.font_size,
+            72,
+        ),
         bold=True,
-
-        outline=3,
-
-        shadow=1,
-
-        margin_v=120,
-
+        outline=3.0,
+        shadow=1.0,
+        margin_v=max(
+            settings.subtitle.margin_bottom,
+            120,
+        ),
     ),
 
-    "podcast": SubtitleStyle(
-
+    "podcast": _style(
         name="Podcast",
-
         font="Arial",
-
-        size=56,
-
+        size=settings.subtitle.font_size,
         bold=False,
-
         outline=1.5,
-
         shadow=0.5,
-
-        margin_v=60,
-
+        margin_v=settings.subtitle.margin_bottom,
     ),
 
-    "minimal": SubtitleStyle(
-
+    "minimal": _style(
         name="Minimal",
-
         font="Arial",
-
-        size=50,
-
+        size=max(
+            settings.subtitle.font_size - 4,
+            32,
+        ),
         bold=False,
-
-        outline=1,
-
-        shadow=0,
-
-        margin_v=60,
-
+        outline=1.0,
+        shadow=0.0,
+        margin_v=settings.subtitle.margin_bottom,
     ),
 
-    "cinema": SubtitleStyle(
-
+    "cinema": _style(
         name="Cinema",
-
         font="Georgia",
-
-        size=52,
-
+        size=max(
+            settings.subtitle.font_size - 2,
+            32,
+        ),
         bold=False,
-
-        outline=1,
-
-        shadow=0,
-
-        margin_v=80,
-
-    )
-
+        outline=1.0,
+        shadow=0.0,
+        margin_v=settings.subtitle.margin_bottom,
+    ),
 }
 
 
-def get_style(name: str):
+def get_style(name: str) -> SubtitleStyle:
+    """
+    Get subtitle style by preset name.
+
+    Falls back to the default preset if the requested
+    preset does not exist.
+    """
+
+    if not name:
+        name = "default"
 
     return PRESETS.get(
-
         name.lower(),
-
-        PRESETS["default"]
-
+        PRESETS["default"],
     )

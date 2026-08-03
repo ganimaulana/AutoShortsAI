@@ -18,7 +18,9 @@ from domain.word import Word
 from narrative.io.transcript_io import TranscriptIO
 from utils.logger import logger
 
-MODEL_NAME = "base"
+from config import settings
+
+
 
 #
 # Lazy Loaded Model
@@ -40,16 +42,17 @@ def get_model() -> WhisperModel:
 
     if _model is None:
 
-        logger.info("Loading Faster-Whisper model...")
+        logger.info(
+            "Loading Faster-Whisper model..."
+        )
 
         _model = WhisperModel(
-            MODEL_NAME,
-            device="cpu",
-            compute_type="int8",
+            settings.whisper.model,
+            device=settings.whisper.device,
+            compute_type=settings.whisper.compute_type,
         )
 
     return _model
-
 
 # ==================================================
 # TRANSCRIBER
