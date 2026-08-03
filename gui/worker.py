@@ -1,13 +1,4 @@
-"""
-==================================================
-Gani Creative Studio
-Powered by Naraseta
-
-AutoShortsAI
-
-Pipeline Worker
-==================================================
-"""
+from __future__ import annotations
 
 import traceback
 
@@ -15,14 +6,8 @@ from PySide6.QtCore import QObject
 from PySide6.QtCore import Signal
 from PySide6.QtCore import Slot
 
-from core.pipeline import Pipeline
-
 
 class PipelineWorker(QObject):
-
-    #
-    # Signals
-    #
 
     finished = Signal(object)
 
@@ -30,50 +15,108 @@ class PipelineWorker(QObject):
 
     log = Signal(str)
 
-    # ---------------------------------------------
+    progress = Signal(int)
 
-    def __init__(self, url):
+    status = Signal(str)
+
+    def __init__(
+
+        self,
+
+        job,
+
+    ):
 
         super().__init__()
 
-        self.url = url
+        self.job = job
 
-        from core.cancel_token import CancelToken
-
-        self.cancel_token = CancelToken()
-
-    # ---------------------------------------------
+        self.cancelled = False
 
     def cancel(self):
 
-        self.cancel_token.cancel()
-
-    # ---------------------------------------------
+        self.cancelled = True
 
     @Slot()
+
     def run(self):
 
         try:
 
-            pipeline = Pipeline(
-                callback=self.log.emit,
-                cancel_token=self.cancel_token,
-            )
+            if self.cancelled:
 
-            context = pipeline.run(
-                self.url
+                raise RuntimeError(
+                    "Pipeline cancelled."
+                )
+
+            from core.pipeline import run_pipeline
+
+            context = run_pipeline(
+
+                self.job,
+
+                progress_callback=self.update_progress,
+
+                log_callback=self.write_log,
+
+                cancel_callback=self.is_cancelled,
+
             )
 
             self.finished.emit(
+
                 context
+
             )
 
-        except Exception as e:
+        except Exception:
 
-            # Print traceback lengkap ke terminal
-            traceback.print_exc()
-
-            # Kirim traceback lengkap ke GUI
             self.error.emit(
-                f"{str(e)}\n\n{traceback.format_exc()}"
+
+                traceback.format_exc()
+
             )
+
+    def update_progress(
+
+        self,
+
+        percent,
+
+        status,
+
+    ):
+
+        self.progress.emit(
+
+            percent
+
+        )
+
+        self.status.emit(
+
+            status
+
+        )
+
+    def write_log(
+
+        self,
+
+        message,
+
+    ):
+
+        self.log.emit(
+
+            message
+
+        )
+
+    def is_cancelled(
+
+        self,
+
+    ):
+
+        return self.cancelled

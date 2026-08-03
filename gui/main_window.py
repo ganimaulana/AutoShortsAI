@@ -12,6 +12,8 @@ from gui.widgets.log_console import LogConsole
 from gui.widgets.progress_card import ProgressCard
 from gui.widgets.thumbnail_widget import ThumbnailWidget
 from gui.widgets.info_card import InfoCard
+from PySide6.QtCore import QThread
+from gui.widgets.queue_table import QueueTable
 
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -64,6 +66,17 @@ class MainWindow(QMainWindow):
 
         self.video_info = None
         self.current_url = ""
+
+        #
+        # Queue
+        #
+        from application.queue_manager import QueueManager
+
+        self.queue = QueueManager()
+
+        #
+        # Worker
+        #
         self.thread = None
         self.worker = None
 
@@ -133,61 +146,153 @@ class MainWindow(QMainWindow):
         # ============================
 
         button_layout = QHBoxLayout()
-
         button_layout.setSpacing(12)
 
-        # ============================
-        # BUTTON
-        # ============================
+        #
+        # Analyze
+        #
 
         self.analyze_button = QPushButton("Analyze")
         self.analyze_button.setIcon(
-            qta.icon("fa5s.search", color="white")
+            qta.icon(
+                "fa5s.search",
+                color="white",
+            )
         )
-        self.analyze_button.clicked.connect(self.analyze_clicked)
 
-        self.start_button = QPushButton("Start Pipeline")
+        self.analyze_button.clicked.connect(
+            self.analyze_clicked
+        )
+
+        #
+        # Add Queue
+        #
+
+        self.add_queue_button = QPushButton(
+            "Add Queue"
+        )
+
+        self.add_queue_button.setIcon(
+
+            qta.icon(
+
+                "fa5s.plus",
+
+                color="white",
+
+            )
+
+        )
+
+        self.add_queue_button.clicked.connect(
+
+            self.add_queue_clicked
+
+        )
+
+        self.add_queue_button.setEnabled(
+            False
+        )
+
+        #
+        # Start Queue
+        #
+
+        self.start_button = QPushButton(
+            "Start Queue"
+        )
+
         self.start_button.setIcon(
-            qta.icon("fa5s.play", color="white")
-        )
-        self.start_button.clicked.connect(self.start_pipeline)
 
-        self.stop_button = QPushButton("Stop")
+            qta.icon(
+
+                "fa5s.play",
+
+                color="white",
+
+            )
+
+        )
+
+        self.start_button.clicked.connect(
+
+            self.start_queue
+
+        )
+
+        self.start_button.setEnabled(
+            False
+        )
+
+        #
+        # Stop
+        #
+
+        self.stop_button = QPushButton(
+            "Stop"
+        )
+
         self.stop_button.setIcon(
-            qta.icon("fa5s.stop", color="white")
-        )
-        self.stop_button.clicked.connect(self.stop_pipeline)
 
-        self.stop_button.setEnabled(False)
+            qta.icon(
 
-        self.analyze_button.setMinimumHeight(42)
-        self.start_button.setMinimumHeight(42)
-        self.stop_button.setMinimumHeight(42)
+                "fa5s.stop",
 
-        self.analyze_button.setFixedSize(
-            170,
-            46,
+                color="white",
+
+            )
+
         )
 
-        self.start_button.setFixedSize(
-            200,
-            46,
+        self.stop_button.clicked.connect(
+
+            self.stop_pipeline
+
         )
 
-        self.stop_button.setFixedSize(
-            150,
-            46,
+        self.stop_button.setEnabled(
+            False
         )
-        self.start_button.setMinimumWidth(180)
-        self.stop_button.setMinimumWidth(140)
 
-        button_layout.addWidget(self.analyze_button)
-        button_layout.addWidget(self.start_button)
-        button_layout.addWidget(self.stop_button)
+        #
+        # Size
+        #
 
-        button_layout.addStretch(1)
+        for button in (
 
-        root.addLayout(button_layout)
+            self.analyze_button,
+
+            self.add_queue_button,
+
+            self.start_button,
+
+            self.stop_button,
+
+        ):
+
+            button.setFixedHeight(46)
+
+        button_layout.addWidget(
+            self.analyze_button
+        )
+
+        button_layout.addWidget(
+            self.add_queue_button
+        )
+
+        button_layout.addWidget(
+            self.start_button
+        )
+
+        button_layout.addWidget(
+            self.stop_button
+        )
+
+        button_layout.addStretch()
+
+        root.addLayout(
+            button_layout
+        )
 
         # ======================================
         # PREVIEW AREA
@@ -242,19 +347,29 @@ class MainWindow(QMainWindow):
             self.progress_card
         )     
 
+      # -----------------------------------------
+        # LOG + QUEUE
         # -----------------------------------------
-        # LOG
-        # -----------------------------------------
-        log_title = QLabel("🖥 System Console")
 
-        log_title.setObjectName("CardTitle")
+        bottom_panel = QHBoxLayout()
 
-        root.addWidget(log_title)
         self.log_console = LogConsole()
         self.log_console.setMinimumHeight(260)
 
-        root.addWidget(self.log_console)
+        self.queue_table = QueueTable()
+        self.queue_table.setMinimumHeight(260)
 
+        bottom_panel.addWidget(
+            self.log_console,
+            2,          # 2/3 lebar
+        )
+
+        bottom_panel.addWidget(
+            self.queue_table,
+            1,          # 1/3 lebar
+        )
+
+        root.addLayout(bottom_panel)
         # -----------------------------------------
         # BOTTOM
         # -----------------------------------------
@@ -308,37 +423,40 @@ class MainWindow(QMainWindow):
 
     def write_log(self, message):
 
-        self.log_console.append(
-            message
+        level = "INFO"
+
+        upper = message.upper()
+
+        if "[ERROR]" in upper:
+            level = "ERROR"
+        elif "[SUCCESS]" in upper:
+            level = "SUCCESS"
+        elif "[WARNING]" in upper:
+            level = "WARNING"
+
+        self.log_console.log(
+            message,
+            level,
         )
 
         progress_map = {
 
             "Analyzing": 10,
-
             "Creating project": 15,
-
             "Downloading": 25,
-
             "Transcribing": 40,
-
             "Building stories": 55,
-
             "Ranking stories": 65,
-
             "Building timeline": 75,
-
             "Generating clips": 90,
-
             "Rendering subtitles": 98,
-
             "Completed": 100,
 
         }
 
         for key, value in progress_map.items():
 
-            if key in message:
+            if key.lower() in message.lower():
 
                 self.progress_card.set_progress(value)
 
@@ -415,6 +533,14 @@ class MainWindow(QMainWindow):
             
 
             self.video_info = analyze_video(url)
+
+            from domain.job.job import Job
+
+            self.pending_job = Job(
+                url=url,
+            )
+
+            self.pending_job.metadata = self.video_info
 
             info = self.video_info
 
@@ -515,44 +641,64 @@ class MainWindow(QMainWindow):
 
             return
 
-        if not self.current_url:
+        if self.queue.is_empty():
+
+            QMessageBox.information(
+
+                self,
+
+                "Queue",
+
+                "Queue kosong.",
+
+            )
 
             return
 
+        
+
         self.progress_card.set_progress(0)
+
+        self.progress_card.set_status(
+
+            "Starting"
+
+        )
 
         self.start_button.setEnabled(False)
 
         self.stop_button.setEnabled(True)
 
         self.write_log(
-            "[SYSTEM] Starting pipeline..."
-        )
 
-    #    self.status_label.setText(
-    #        "Running"
-    #    )
+            "[SYSTEM] Starting pipeline..."
+
+        )
 
         self.status.showMessage(
-            "Running"
-        )
 
-        self.progress_card.set_status(
             "Running"
+
         )
 
         #
         # Thread
         #
 
+        job = self.current_job
+        
+        self.worker = PipelineWorker(job)
+
         self.thread = QThread()
 
-        self.worker = PipelineWorker(
-            self.current_url
-        )
+        job = self.current_job
+
+        self.worker = PipelineWorker(job)
 
         self.worker.moveToThread(
+
             self.thread
+
         )
 
         #
@@ -560,59 +706,97 @@ class MainWindow(QMainWindow):
         #
 
         self.thread.started.connect(
+
             self.worker.run
+
         )
 
         self.worker.log.connect(
+
             self.write_log
+
+        )
+
+        self.worker.progress.connect(
+
+            self.progress_card.set_progress
+
+        )
+
+        self.worker.status.connect(
+
+            self.progress_card.set_status
+
         )
 
         self.worker.finished.connect(
+
             self.pipeline_finished
+
         )
 
         self.worker.error.connect(
+
             self.pipeline_error
-        )
 
-        self.worker.error.connect(
-            self.thread.quit
-        )
-
-        self.worker.error.connect(
-            self.worker.deleteLater
-        )
-
-        #
-        # Cleanup
-        #
-
-        self.worker.finished.connect(
-            self.thread.quit
         )
 
         self.worker.finished.connect(
+
+            self.thread.quit
+
+        )
+
+        self.worker.error.connect(
+
+            self.thread.quit
+
+        )
+
+        self.worker.finished.connect(
+
             self.worker.deleteLater
+
+        )
+
+        self.worker.error.connect(
+
+            self.worker.deleteLater
+
         )
 
         self.thread.finished.connect(
+
             self.thread.deleteLater
+
         )
 
         self.thread.finished.connect(
+
             lambda: setattr(
+
                 self,
+
                 "thread",
+
                 None,
+
             )
+
         )
 
         self.thread.finished.connect(
+
             lambda: setattr(
+
                 self,
+
                 "worker",
+
                 None,
+
             )
+
         )
 
         self.thread.start()
@@ -754,3 +938,40 @@ class MainWindow(QMainWindow):
         self.status.showMessage(
             "Cancelling..."
         )
+    def add_queue_clicked(self):
+
+        if not hasattr(self, "pending_job"):
+
+            QMessageBox.warning(
+                self,
+                "Queue",
+                "Analyze video terlebih dahulu.",
+            )
+            return
+
+        self.queue.add(self.pending_job)
+
+        self.queue_table.add_job(self.pending_job)
+
+        self.write_log(
+            "[QUEUE] Added."
+        )
+
+        self.start_button.setEnabled(True)
+        
+    def start_queue(self):
+
+        if self.queue.is_empty():
+
+            QMessageBox.information(
+                self,
+                "Queue",
+                "Queue kosong."
+            )
+
+            return
+
+        self.current_job = self.queue.next()
+
+        self.start_pipeline()
+    

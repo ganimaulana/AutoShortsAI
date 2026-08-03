@@ -1,96 +1,96 @@
-from PySide6.QtGui import QTextCursor
-from PySide6.QtWidgets import QTextEdit
-
 from datetime import datetime
 
+from PySide6.QtGui import QColor
+from PySide6.QtGui import QTextCursor
+
+from PySide6.QtWidgets import QTextEdit
+
 from gui.widgets.card import Card
+from gui.widgets.section_title import SectionTitle
 
 
 class LogConsole(Card):
 
+    COLORS = {
+
+        "INFO": "#3B82F6",
+
+        "SUCCESS": "#22C55E",
+
+        "WARNING": "#F59E0B",
+
+        "ERROR": "#EF4444",
+
+    }
+
     def __init__(self):
+
         super().__init__()
+
+        self.layout.addWidget(
+
+            SectionTitle(
+
+                "🖥 Log Console"
+
+            )
+
+        )
 
         self.console = QTextEdit()
 
         self.console.setReadOnly(True)
 
-        self.console.setObjectName("LogConsole")
+        self.console.setMinimumHeight(220)
 
-        self.layout.addWidget(self.console)
+        self.layout.addWidget(
 
-    # =====================================
+            self.console
 
-    def append(self, text):
-
-        now = datetime.now().strftime("%H:%M:%S")
-
-        color = "#E5E7EB"
-
-        icon = "•"
-
-        upper = text.upper()
-
-        if "SUCCESS" in upper:
-
-            color = "#22C55E"
-
-            icon = "✔"
-
-        elif "ERROR" in upper:
-
-            color = "#EF4444"
-
-            icon = "✖"
-
-        elif "WARNING" in upper:
-
-            color = "#F59E0B"
-
-            icon = "⚠"
-
-        elif "INFO" in upper:
-
-            color = "#38BDF8"
-
-            icon = "ℹ"
-
-        elif "SYSTEM" in upper:
-
-            color = "#A855F7"
-
-            icon = "⚙"
-
-        html = f"""
-<div style="
-margin-bottom:6px;
-font-family:Consolas;
-font-size:12px;
-">
-
-<span style="color:#6B7280;">
-[{now}]
-</span>
-
-<span style="color:{color};font-weight:bold;">
-{icon}
-</span>
-
-<span style="color:white;">
-{text}
-</span>
-
-</div>
-"""
-
-        self.console.insertHtml(html)
-
-        self.console.moveCursor(
-            QTextCursor.End
         )
 
-    # =====================================
+    def log(
 
-    def clear(self):
+        self,
+
+        message,
+
+        level="INFO",
+
+    ):
+
+        color = self.COLORS.get(
+
+            level,
+
+            "#FFFFFF",
+
+        )
+
+        now = datetime.now().strftime(
+
+            "%H:%M:%S"
+
+        )
+
+        self.console.setTextColor(
+
+            QColor(color)
+
+        )
+
+        self.console.append(
+
+            f"[{now}] [{level}] {message}"
+
+        )
+
+        self.console.moveCursor(
+
+            QTextCursor.End
+
+        )
+
+    def clear_logs(self):
 
         self.console.clear()

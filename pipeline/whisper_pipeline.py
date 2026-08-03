@@ -2,7 +2,6 @@ from pathlib import Path
 
 from faster_whisper import WhisperModel
 
-from domain.assets import Asset
 from domain.job.status import JobStatus
 
 from pipeline.base_pipeline import (
@@ -49,7 +48,7 @@ class WhisperPipeline(PipelineStep):
 
     ):
 
-        video = job.manifest.video.path
+        video = job.manifest.video
 
         segments, info = self.model.transcribe(
 
@@ -107,6 +106,11 @@ class WhisperPipeline(PipelineStep):
 
         )
 
+        transcript_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
         transcript_file = (
 
             transcript_dir /
@@ -139,19 +143,7 @@ class WhisperPipeline(PipelineStep):
 
             )
 
-        job.manifest.transcript_raw = Asset(
-
-            path=transcript_file,
-
-            exists=True,
-
-            size=transcript_file.stat().st_size,
-
-            created_by="WhisperPipeline",
-
-            mime="application/json",
-
-        )
+        job.manifest.transcript_raw = transcript_file
 
         return StepResult(
 

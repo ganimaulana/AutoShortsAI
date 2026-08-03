@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from yt_dlp import YoutubeDL
-
-from domain.assets import Asset
+from domain.job.job import Job
 from domain.job.status import JobStatus
+
+from infrastructure.downloader import download_video
 
 from pipeline.base_pipeline import (
     PipelineStep,
@@ -21,68 +21,33 @@ class DownloadPipeline(PipelineStep):
 
     retries = 3
 
-    def execute(self, job):
+    def execute(
+        self,
+        job: Job,
+    ) -> StepResult:
 
         input_dir = job.workspace / "input"
 
-        output_template = str(
-            input_dir / "%(title)s.%(ext)s"
+        input_dir.mkdir(
+            parents=True,
+            exist_ok=True,
         )
 
-        options = {
+        video_path = download_video(
+            job.url,
+            input_dir,
+        )
 
-            "format": "bestvideo+bestaudio/best",
+        if not video_path.exists():
 
-            "outtmpl": output_template,
-
-            "merge_output_format": "mp4",
-
-            "continuedl": True,
-
-            "quiet": True,
-
-            "noplaylist": True,
-
-        }
-
-        with YoutubeDL(options) as ydl:
-
-            info = ydl.extract_info(
-
-                job.url,
-
-                download=True,
-
+            return StepResult(
+                success=False,
+                message="Downloaded video not found.",
             )
 
-            filename = Path(
-
-                ydl.prepare_filename(info)
-
-            ).with_suffix(".mp4")
-
-        job.manifest.video = Asset(
-
-            path=filename,
-
-            exists=filename.exists(),
-
-            size=filename.stat().st_size
-
-            if filename.exists()
-
-            else 0,
-
-            created_by="DownloadPipeline",
-
-            mime="video/mp4",
-
-        )
+        job.manifest.video = video_path
 
         return StepResult(
-
             success=True,
-
             message="Video downloaded",
-
         )
