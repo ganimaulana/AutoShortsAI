@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
-from domain.job.job import Job
 from pipeline.base_pipeline import PipelineStep
 
 
@@ -10,119 +7,119 @@ class PipelineRunner:
 
     def __init__(
         self,
-        steps: list[PipelineStep],
-        *,
-        progress_callback: Callable[[int, str], None] | None = None,
-        log_callback: Callable[[str], None] | None = None,
-        cancel_callback: Callable[[], bool] | None = None,
+        progress_callback=None,
+        log_callback=None,
+        cancel_callback=None,
     ):
-
-        self.steps = steps
 
         self.progress_callback = progress_callback
         self.log_callback = log_callback
         self.cancel_callback = cancel_callback
 
-    def _log(self, message: str) -> None:
+        self.steps = []
 
-        if self.log_callback:
-            self.log_callback(message)
+    def add_step(self, step: PipelineStep) -> None:
 
-    def _progress(
-        self,
-        percent: int,
-        status: str,
-    ) -> None:
+        self.steps.append(step)
 
-        if self.progress_callback:
-            self.progress_callback(
-                percent,
-                status,
-            )
+    def run(self, job):
+        """Run registered steps using one shared Job instance.
 
-    def run(
-        self,
-        job: Job,
-    ) -> Job:
+        Progress and log callbacks intentionally retain their existing GUI
+        signatures: ``(percent, stage_name)`` and ``(message,)``.
+        """
+
+        print("=" * 60)
+        print("PIPELINE RUNNER START")
+        print("TOTAL STEPS =", len(self.steps))
+        print("=" * 60)
 
         total = len(self.steps)
 
         if total == 0:
-            job.complete()
-            return job
 
-        for index, step in enumerate(self.steps):
+            raise RuntimeError("Pipeline has no registered steps.")
 
-            if self.cancel_callback and self.cancel_callback():
+        for index, step in enumerate(
+            self.steps,
+            start=1,
+        ):
+            print(f"EXECUTING STEP: {step.name}")
 
-                job.cancel()
+            #
+            # Cancel
+            #
 
-                self._log(
-                    "[SYSTEM] Pipeline cancelled."
-                )
+            if self.cancel_callback:
 
-                return job
+                if self.cancel_callback():
 
-            percent = int(
-                (index / total) * 100
-            )
+                    job.cancel()
 
-            job.update_progress(percent)
-
-            self._progress(
-                percent,
-                step.name,
-            )
-
-            self._log(
-                f"[{step.name}] Started"
-            )
-
-            attempt = 0
-
-            while True:
-
-                result = step.run(job)
-
-                if result.success:
-
-                    break
-
-                attempt += 1
-
-                self._log(
-
-                    f"[{step.name}] Retry "
-
-                    f"{attempt}/{step.retries}"
-
-                )
-
-                if attempt > step.retries:
-
-                    job.fail(result.message)
-
-                    self._log(
-
-                        f"[ERROR] {result.message}"
-
+                    raise RuntimeError(
+                        "Pipeline cancelled."
                     )
 
-                    return job
+            #
+            # Progress
+            #
 
-            self._log(
-                f"[{step.name}] Finished"
+            percent = int(
+                ((index - 1) / total) * 100
             )
 
+            if self.progress_callback:
+
+                self.progress_callback(
+                    percent,
+                    step.name,
+                )
+
+            #
+            # Log
+            #
+
+            if self.log_callback:
+
+                self.log_callback(
+                    f"[{step.name}] Started"
+                )
+
+            #
+            # Execute
+            #
+
+            result = step.run(job)
+
+            if not result.success:
+
+                job.fail(result.message)
+
+                raise RuntimeError(
+                    result.message
+                )
+
+            #
+            # Finished
+            #
+
+            if self.log_callback:
+
+                self.log_callback(
+                    f"[{step.name}] Finished"
+                )
+
+            print(f"RUNNER: {step.name} Finished")
+
+        if self.progress_callback:
+
+            self.progress_callback(
+                100,
+                "Completed",
+            )
+
+        print("RUNNER: Pipeline Completed")
+
         job.complete()
-
-        self._progress(
-            100,
-            "Completed",
-        )
-
-        self._log(
-            "[SUCCESS] Pipeline completed."
-        )
 
         return job

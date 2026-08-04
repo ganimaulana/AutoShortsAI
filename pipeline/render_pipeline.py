@@ -1,23 +1,16 @@
 from domain.job.status import JobStatus
 
 from pipeline.base_pipeline import (
-
     PipelineStep,
-
     StepResult,
-
 )
 
-from application.use_cases.render_plan_builder import (
-
+from application.use_case.render_plan_builder import (
     RenderPlanBuilder,
-
 )
 
 from infrastructure.ffmpeg.ffmpeg_service import (
-
     FFmpegService,
-
 )
 
 
@@ -37,25 +30,28 @@ class RenderPipeline(PipelineStep):
 
     def execute(self, job):
 
-        candidates = job.metadata[
-            "approved_candidates"
-        ]
+        candidates = job.metadata["approved_candidates"]
+
+        print("=" * 60)
+        print("CANDIDATES TYPE :", type(candidates))
+        print("FIRST TYPE      :", type(candidates[0]))
+        print("FIRST VALUE     :", candidates[0])
+        print("=" * 60)
 
         plans = self.builder.run(
-
             job,
-
             candidates,
-
         )
 
         total = len(plans)
 
         for i, plan in enumerate(plans):
 
-            self.ffmpeg.render(plan)
+            print(
+                f"[Render] {i + 1}/{total}"
+            )
 
-            
+            self.ffmpeg.render(plan)
 
         return StepResult(
             success=True,

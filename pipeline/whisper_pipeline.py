@@ -145,6 +145,43 @@ class WhisperPipeline(PipelineStep):
 
         job.manifest.transcript_raw = transcript_file
 
+        #
+        # Temporary candidate
+        #
+
+        if output:
+
+            start = output[0]["start"]
+
+            end = output[-1]["end"]
+
+            #
+            # Maksimal 60 detik
+            #
+
+            end = min(
+                end,
+                start + 60,
+            )
+
+            job.metadata["approved_candidates"] = [
+
+                {
+
+                    "id": 1,
+
+                    "title": "Auto Candidate",
+
+                    "score": 100,
+
+                    "start": start,
+
+                    "end": end,
+
+                }
+
+            ]
+
         return StepResult(
 
             success=True,

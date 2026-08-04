@@ -14,6 +14,9 @@ from gui.widgets.thumbnail_widget import ThumbnailWidget
 from gui.widgets.info_card import InfoCard
 from PySide6.QtCore import QThread
 from gui.widgets.queue_table import QueueTable
+from pathlib import Path
+from datetime import datetime
+import re
 
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -41,7 +44,6 @@ from gui.worker import PipelineWorker
 from urllib.request import urlopen
 
 from PySide6.QtWidgets import (
-
     QMessageBox,
     QMainWindow,
     QWidget,
@@ -54,7 +56,6 @@ from PySide6.QtWidgets import (
     QSplitter,
     QFrame,
     QSizePolicy,
-
 )
 
 
@@ -439,30 +440,6 @@ class MainWindow(QMainWindow):
             level,
         )
 
-        progress_map = {
-
-            "Analyzing": 10,
-            "Creating project": 15,
-            "Downloading": 25,
-            "Transcribing": 40,
-            "Building stories": 55,
-            "Ranking stories": 65,
-            "Building timeline": 75,
-            "Generating clips": 90,
-            "Rendering subtitles": 98,
-            "Completed": 100,
-
-        }
-
-        for key, value in progress_map.items():
-
-            if key.lower() in message.lower():
-
-                self.progress_card.set_progress(value)
-
-                self.progress_card.set_status(key)
-
-                break
     # ==================================================
     # Thumbnail
     # ==================================================
@@ -536,10 +513,72 @@ class MainWindow(QMainWindow):
 
             from domain.job.job import Job
 
-            self.pending_job = Job(
-                url=url,
+            title = self.video_info.get(
+                "title",
+                "Untitled",
             )
 
+            safe_title = re.sub(
+                r'[<>:"/\\|?*]',
+                "",
+                title,
+            ).strip()
+
+            safe_title = safe_title.replace(
+                " ",
+                "_",
+            )
+
+            timestamp = datetime.now().strftime(
+                "%Y%m%d_%H%M%S"
+            )
+
+            workspace = (
+                Path.cwd()
+                / "projects"
+                / f"{timestamp}_{safe_title}"
+            )
+
+            workspace.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+            for folder in (
+                "input",
+                "output",
+                "subtitle",
+                "transcript",
+                "temp",
+            ):
+                (workspace / folder).mkdir(
+                    exist_ok=True,
+                )
+
+            print("=" * 60)
+            print("WORKSPACE :", workspace)
+            print("EXISTS    :", workspace.exists())
+
+            import os
+
+            print("LISTDIR   :", os.listdir(workspace))
+
+            print("INPUT     :", (workspace / "input").exists())
+            print("OUTPUT    :", (workspace / "output").exists())
+            print("=" * 60)
+
+            print("WORKSPACE =", workspace)
+
+            self.pending_job = Job(
+                url=url,
+                workspace=workspace,
+            )
+
+            print("Workspace exists :", workspace.exists())
+            print("Input exists     :", (workspace / "input").exists())
+            print("Workspace path   :", workspace)
+
+            self.project_path = str(workspace)
             self.pending_job.metadata = self.video_info
 
             info = self.video_info
@@ -573,7 +612,8 @@ class MainWindow(QMainWindow):
         #        "Ready to Start"
         #    )
 
-            self.start_button.setEnabled(True)
+            self.add_queue_button.setEnabled(True)
+            self.start_button.setEnabled(False)
 
             self.write_log(
                 "[SUCCESS] Analyze completed."
@@ -637,199 +677,152 @@ class MainWindow(QMainWindow):
 
     def start_pipeline(self):
 
+        #
+        # Thread masih berjalan
+        #
         if self.thread is not None:
-
             return
 
-        if self.queue.is_empty():
+        #
+        # Pastikan ada current job
+        #
+        if not hasattr(self, "current_job") or self.current_job is None:
 
-            QMessageBox.information(
-
+            QMessageBox.warning(
                 self,
-
                 "Queue",
-
-                "Queue kosong.",
-
+                "Tidak ada job yang akan diproses."
             )
 
             return
 
-        
-
-        self.progress_card.set_progress(0)
-
-        self.progress_card.set_status(
-
-            "Starting"
-
-        )
+        #
+        # Update UI
+        #
+        self.pipeline_progress(0, "PENDING")
 
         self.start_button.setEnabled(False)
-
         self.stop_button.setEnabled(True)
 
         self.write_log(
-
             "[SYSTEM] Starting pipeline..."
-
-        )
-
-        self.status.showMessage(
-
-            "Running"
-
         )
 
         #
-        # Thread
+        # Worker
         #
-
-        job = self.current_job
-        
-        self.worker = PipelineWorker(job)
-
         self.thread = QThread()
 
-        job = self.current_job
-
-        self.worker = PipelineWorker(job)
+        self.worker = PipelineWorker(
+            self.current_job
+        )
 
         self.worker.moveToThread(
-
             self.thread
-
         )
 
         #
-        # Connections
+        # Thread Start
         #
-
         self.thread.started.connect(
-
             self.worker.run
-
         )
 
+        #
+        # Worker Signals
+        #
         self.worker.log.connect(
-
             self.write_log
-
         )
 
         self.worker.progress.connect(
-
-            self.progress_card.set_progress
-
-        )
-
-        self.worker.status.connect(
-
-            self.progress_card.set_status
-
+            self.pipeline_progress
         )
 
         self.worker.finished.connect(
-
             self.pipeline_finished
-
         )
 
         self.worker.error.connect(
-
             self.pipeline_error
-
         )
 
+        #
+        # Cleanup
+        #
         self.worker.finished.connect(
-
             self.thread.quit
-
         )
 
         self.worker.error.connect(
-
             self.thread.quit
-
         )
 
         self.worker.finished.connect(
-
             self.worker.deleteLater
-
         )
 
         self.worker.error.connect(
-
             self.worker.deleteLater
-
         )
 
         self.thread.finished.connect(
-
             self.thread.deleteLater
-
         )
 
         self.thread.finished.connect(
-
             lambda: setattr(
-
                 self,
-
                 "thread",
-
                 None,
-
             )
-
         )
 
         self.thread.finished.connect(
-
             lambda: setattr(
-
                 self,
-
                 "worker",
-
                 None,
-
             )
-
         )
 
+        #
+        # Start
+        #
         self.thread.start()
 
     # ==================================================
     # Pipeline Finished
     # ==================================================
 
-    def pipeline_finished(self, context):
+    def pipeline_finished(self, job):
+
+        self.project_path = str(job.workspace)
+
+        #
+        # Pastikan UI berada pada state terakhir
+        #
+        self.pipeline_progress(
+            100,
+            "COMPLETED",
+        )
+
+        #
+        # Tambahkan log yang hilang
+        #
+        self.write_log(
+            "[Render] Finished"
+        )
 
         self.write_log(
-            "[SUCCESS] Pipeline completed."
+            "[SUCCESS] Pipeline Completed"
         )
 
-        self.project_path = context.project_path
-        self.progress_card.set_progress(100)
-
+        #
+        # Tombol
+        #
         self.start_button.setEnabled(True)
-
         self.stop_button.setEnabled(False)
-
-        self.status.showMessage(
-            "Completed"
-        )
-
-        self.progress_card.set_status(
-            "Completed"
-        )
-
-    #    self.status_label.setText(
-    #        "Completed"
-    #    )
-
 
 
         # ==================================================
@@ -848,21 +841,11 @@ class MainWindow(QMainWindow):
                 "[SYSTEM] Pipeline cancelled."
             )
 
-            self.status.showMessage(
-                "Cancelled"
-            )
-
-            self.progress_card.set_status(
-                "Cancelled"
-            )
-
-        #    self.status_label.setText(
-        #        "Cancelled"
-        #    )
-
-            self.progress_card.set_progress(0)
+            self.pipeline_progress(0, "CANCELLED")
 
         else:
+
+            print(message)
 
             QMessageBox.critical(
                 self,
@@ -874,15 +857,7 @@ class MainWindow(QMainWindow):
                 f"[ERROR] {message}"
             )
 
-            self.status.showMessage(
-                "Error"
-            )
-
-        #    self.status_label.setText(
-        #        "Error"
-        #    )
-
-            self.progress_card.set_progress(0)
+            self.pipeline_progress(0, "ERROR")
 
         self.thread = None
 
@@ -935,13 +910,16 @@ class MainWindow(QMainWindow):
 
         self.stop_button.setEnabled(False)
 
-        self.status.showMessage(
-            "Cancelling..."
+        self.pipeline_progress(
+            self.current_job.progress,
+            "CANCELLING",
         )
+
     def add_queue_clicked(self):
 
-        if not hasattr(self, "pending_job"):
+        print("DEBUG 1 - add_queue_clicked")
 
+        if not hasattr(self, "pending_job"):
             QMessageBox.warning(
                 self,
                 "Queue",
@@ -951,15 +929,32 @@ class MainWindow(QMainWindow):
 
         self.queue.add(self.pending_job)
 
+        print("========== ADD QUEUE ==========")
+        print("Queue object id :", id(self.queue))
+        print("Queue length    :", len(self.queue))
+        print("Queue empty     :", self.queue.is_empty())
+
+        print("DEBUG 2 - queue size:", len(self.queue))
+
         self.queue_table.add_job(self.pending_job)
 
-        self.write_log(
-            "[QUEUE] Added."
-        )
-
         self.start_button.setEnabled(True)
+
+        print("DEBUG 3 - start enabled:", self.start_button.isEnabled())
+
+        self.add_queue_button.setEnabled(False)
+
+        self.write_log("[QUEUE] Added.")
         
     def start_queue(self):
+
+        print("========== START QUEUE ==========")
+        print("Queue object id :", id(self.queue))
+        print("Queue length    :", len(self.queue))
+        print("Queue empty     :", self.queue.is_empty())
+
+        if not self.queue.is_empty():
+            print("Next job peek   :", self.queue.peek())
 
         if self.queue.is_empty():
 
@@ -968,10 +963,49 @@ class MainWindow(QMainWindow):
                 "Queue",
                 "Queue kosong."
             )
-
             return
 
         self.current_job = self.queue.next()
 
+        print("Current job :", self.current_job)
+
         self.start_pipeline()
-    
+
+    def pipeline_progress(self, percent, stage):
+
+        stage = stage.upper()
+
+        self.progress_card.set_progress(percent)
+
+        self.progress_card.set_status(stage)
+
+        self.status.showMessage(
+            f"{stage} | {percent}%"
+        )
+
+        if hasattr(self, "current_job"):
+
+            #
+            # Progress
+            #
+            self.current_job.progress = percent
+
+            #
+            # Current Step
+            #
+           
+            self.current_job.current_step = stage
+  
+
+            #
+            # >>> TAMBAHKAN BAGIAN INI <<<
+            #
+            
+
+            #
+            # Refresh Queue
+            #
+            try:
+                self.queue_table.update_job(self.current_job)
+            except Exception:
+                pass

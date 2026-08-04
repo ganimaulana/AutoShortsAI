@@ -15,7 +15,7 @@ class PipelineWorker(QObject):
 
     log = Signal(str)
 
-    progress = Signal(int)
+    progress = Signal(int, str)
 
     status = Signal(str)
 
@@ -51,6 +51,12 @@ class PipelineWorker(QObject):
 
             from core.pipeline import run_pipeline
 
+            print("=" * 60)
+            print("WORKER START")
+            print("JOB =", self.job)
+            print("WORKSPACE =", self.job.workspace)
+            print("=" * 60)
+
             context = run_pipeline(
 
                 self.job,
@@ -63,18 +69,35 @@ class PipelineWorker(QObject):
 
             )
 
+            self.write_log(
+                "Pipeline Completed"
+            )
+
+            print("DEBUG: Pipeline Completed emitted")
+
             self.finished.emit(
 
                 context
 
             )
 
-        except Exception:
+        except Exception as e:
+
+            tb = traceback.format_exc()
+
+            print("=" * 80)
+            print(tb)
+            print("=" * 80)
+
+            self.error.emit(tb)
+            
+            print("=" * 80)
+            print("PIPELINE EXCEPTION")
+            traceback.print_exc()
+            print("=" * 80)
 
             self.error.emit(
-
                 traceback.format_exc()
-
             )
 
     def update_progress(
@@ -88,9 +111,8 @@ class PipelineWorker(QObject):
     ):
 
         self.progress.emit(
-
-            percent
-
+            percent,
+            status,
         )
 
         self.status.emit(

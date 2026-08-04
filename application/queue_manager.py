@@ -4,34 +4,88 @@ from domain.job.job import Job
 
 
 class QueueManager:
+    """
+    FIFO Queue Manager.
+    """
 
     def __init__(self):
 
-        self.queue = deque()
+        self._queue = deque()
+
+    # -----------------------------------------
 
     def add(
         self,
         job: Job,
-    ):
+    ) -> None:
 
-        self.queue.append(job)
+        self._queue.append(job)
 
-    def pop(self):
+    # -----------------------------------------
 
-        if not self.queue:
+    def next(self) -> Job | None:
+        """
+        Ambil job berikutnya.
+        """
 
+        if not self._queue:
             return None
 
-        return self.queue.popleft()
+        return self._queue.popleft()
+
+    # -----------------------------------------
+
+    def pop(self) -> Job | None:
+        """
+        Alias next().
+        """
+
+        return self.next()
+
+    # -----------------------------------------
+
+    def peek(self) -> Job | None:
+
+        if not self._queue:
+            return None
+
+        return self._queue[0]
+
+    # -----------------------------------------
 
     def clear(self):
 
-        self.queue.clear()
+        self._queue.clear()
+
+    # -----------------------------------------
+
+    def is_empty(self) -> bool:
+
+        return len(self._queue) == 0
+
+    # -----------------------------------------
+
+    def empty(self) -> bool:
+        """
+        Backward compatibility.
+        """
+
+        return self.is_empty()
+
+    # -----------------------------------------
+
+    def count(self) -> int:
+
+        return len(self._queue)
+
+    # -----------------------------------------
 
     def __len__(self):
 
-        return len(self.queue)
+        return len(self._queue)
 
-    def empty(self):
+    # -----------------------------------------
 
-        return len(self.queue) == 0
+    def __iter__(self):
+
+        return iter(self._queue)

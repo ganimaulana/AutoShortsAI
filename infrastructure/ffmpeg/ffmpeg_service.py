@@ -7,11 +7,8 @@ from domain.render.render_plan import RenderPlan
 class FFmpegService:
 
     def render(
-
         self,
-
         plan: RenderPlan,
-
     ) -> Path:
 
         duration = plan.end - plan.start
@@ -44,28 +41,29 @@ class FFmpegService:
 
         filters = []
 
+        #
+        # Vertical crop
+        #
+
         if plan.crop_vertical:
 
             filters.append(
-
-                "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920"
-
+                "scale=1080:1920:force_original_aspect_ratio=increase,"
+                "crop=1080:1920"
             )
 
+        #
+        # Subtitle (optional)
+        #
+
         if (
-
             plan.burn_subtitle
-
-            and
-
-            plan.subtitle_file
-
+            and plan.subtitle_file
+            and Path(plan.subtitle_file).exists()
         ):
 
             filters.append(
-
                 f"subtitles={plan.subtitle_file}"
-
             )
 
         if filters:
@@ -112,12 +110,14 @@ class FFmpegService:
 
         )
 
+        print("=" * 60)
+        print("FFMPEG COMMAND")
+        print(command)
+        print("=" * 60)
+
         subprocess.run(
-
             command,
-
             check=True,
-
         )
 
         return plan.output_video

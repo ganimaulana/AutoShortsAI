@@ -23,7 +23,11 @@ class StepResult:
 
 class PipelineStep(ABC):
     """
-    Base class untuk semua Pipeline.
+    Contract untuk satu tahap pipeline berbasis ``Job``.
+
+    Pipeline tidak lagi meneruskan context terpisah antar tahap. Semua input,
+    state runtime, dan artefak tahap disimpan pada ``Job`` beserta manifest dan
+    metadata-nya.
     """
 
     # Nama step yang tampil di GUI
@@ -52,6 +56,13 @@ class PipelineStep(ABC):
 
             result = self.execute(job)
 
+            if not isinstance(result, StepResult):
+
+                raise TypeError(
+                    f"{self.__class__.__name__}.execute() "
+                    "must return StepResult."
+                )
+
             result.elapsed = perf_counter() - start
 
             return result
@@ -74,6 +85,6 @@ class PipelineStep(ABC):
         job: Job,
     ) -> StepResult:
         """
-        Diimplementasikan oleh masing-masing pipeline.
+        Jalankan satu tahap dengan ``job`` sebagai satu-satunya execution unit.
         """
         ...

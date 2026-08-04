@@ -26,19 +26,31 @@ class RenderPlanBuilder:
                 / f"clip_{index:03d}.ass"
             )
 
+            start = (
+                candidate["start"]
+                if isinstance(candidate, dict)
+                else candidate.start
+            )
+
+            end = (
+                candidate["end"]
+                if isinstance(candidate, dict)
+                else candidate.end
+            )
+
             plans.append(
 
                 RenderPlan(
 
-                    input_video=job.manifest.video.path,
+                    input_video=job.manifest.video,
 
                     output_video=output,
 
                     subtitle_file=subtitle,
 
-                    start=candidate.start,
+                    start=start,
 
-                    end=candidate.end,
+                    end=end,
 
                 )
 

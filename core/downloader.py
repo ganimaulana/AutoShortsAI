@@ -82,9 +82,17 @@ def download_video(
         # Quiet
         #
 
-        "quiet": True,
-
-        "no_warnings": True,
+        "quiet": False,
+        "no_warnings": False,
+        "progress_hooks": [
+            lambda d: print(
+                "[yt-dlp]",
+                d.get("status"),
+                d.get("downloaded_bytes", 0),
+                "/",
+                d.get("total_bytes") or d.get("total_bytes_estimate"),
+            )
+        ],
 
     }
 
