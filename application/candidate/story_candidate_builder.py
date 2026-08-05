@@ -13,6 +13,12 @@ class StoryPatternMatch:
     matched_segments: tuple[StorySegment, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class StoryCandidateMatch:
+    match: StoryPatternMatch
+    candidate: Candidate
+
+
 class StoryCandidateBuilder:
     """Builds clip candidates from deterministic story pattern matches."""
 
@@ -29,10 +35,16 @@ class StoryCandidateBuilder:
         self._validate_configuration()
 
     def build(self, story_segments: list[StorySegment]) -> list[Candidate]:
+        return [
+            candidate_match.candidate
+            for candidate_match in self.build_matches(story_segments)
+        ]
+
+    def build_matches(self, story_segments: list[StorySegment]) -> list[StoryCandidateMatch]:
         if not story_segments:
             return []
 
-        candidates: list[Candidate] = []
+        candidate_matches: list[StoryCandidateMatch] = []
 
         for pattern_match in self._find_matches(story_segments):
             if not self._validate_match(pattern_match):
@@ -41,9 +53,14 @@ class StoryCandidateBuilder:
             candidate = self._build_candidate(pattern_match)
 
             if self._validate_candidate(pattern_match.pattern, candidate):
-                candidates.append(candidate)
+                candidate_matches.append(
+                    StoryCandidateMatch(
+                        match=pattern_match,
+                        candidate=candidate,
+                    )
+                )
 
-        return self._deduplicate(candidates)[: self.maximum_candidates]
+        return self._deduplicate_matches(candidate_matches)[: self.maximum_candidates]
 
     def _validate_configuration(self) -> None:
         if not self.patterns:
@@ -156,7 +173,7 @@ class StoryCandidateBuilder:
         seen_windows: set[tuple[float, float]] = set()
 
         for candidate in candidates:
-            window_key = (round(candidate.start, 3), round(candidate.end, 3))
+            window_key = StoryCandidateBuilder._candidate_window_key(candidate)
 
             if window_key in seen_windows:
                 continue
@@ -165,3 +182,27 @@ class StoryCandidateBuilder:
             deduplicated_candidates.append(candidate)
 
         return deduplicated_candidates
+
+    @staticmethod
+    def _deduplicate_matches(
+        candidate_matches: list[StoryCandidateMatch],
+    ) -> list[StoryCandidateMatch]:
+        deduplicated_matches: list[StoryCandidateMatch] = []
+        seen_windows: set[tuple[float, float]] = set()
+
+        for candidate_match in candidate_matches:
+            window_key = StoryCandidateBuilder._candidate_window_key(
+                candidate_match.candidate
+            )
+
+            if window_key in seen_windows:
+                continue
+
+            seen_windows.add(window_key)
+            deduplicated_matches.append(candidate_match)
+
+        return deduplicated_matches
+
+    @staticmethod
+    def _candidate_window_key(candidate: Candidate) -> tuple[float, float]:
+        return (round(candidate.start, 3), round(candidate.end, 3))

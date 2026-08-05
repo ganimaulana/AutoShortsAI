@@ -8,7 +8,10 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from application.candidate.story_candidate_builder import StoryCandidateBuilder
+from application.candidate.story_candidate_builder import (
+    StoryCandidateBuilder,
+    StoryCandidateMatch,
+)
 from application.candidate.story_patterns import StoryPattern, get_default_story_patterns
 from domain.story_intelligence import StorySegment, StorySegmentType
 
@@ -56,6 +59,57 @@ def test_build_returns_candidate_for_successful_pattern_match() -> None:
     assert candidates[0].end == 6.0
     assert candidates[0].score == 0.0
     assert candidates[0].reason == "Story Pattern: Hook -> Result"
+
+
+def test_build_matches_returns_match_and_candidate_for_successful_pattern_match() -> None:
+    builder = StoryCandidateBuilder(
+        patterns=(
+            StoryPattern(
+                name="Hook -> Result",
+                priority=1,
+                sequence=(StorySegmentType.HOOK, StorySegmentType.RESULT),
+                max_gap=0,
+                minimum_duration=4.0,
+                maximum_duration=10.0,
+            ),
+        )
+    )
+    hook = make_story_segment(1, StorySegmentType.HOOK, 0.0, 2.0)
+    result = make_story_segment(2, StorySegmentType.RESULT, 3.0, 6.0)
+
+    candidate_matches = builder.build_matches([hook, result])
+
+    assert len(candidate_matches) == 1
+    assert isinstance(candidate_matches[0], StoryCandidateMatch)
+    assert candidate_matches[0].match.pattern.name == "Hook -> Result"
+    assert candidate_matches[0].match.matched_segments == (hook, result)
+    assert candidate_matches[0].candidate.start == 0.0
+    assert candidate_matches[0].candidate.end == 6.0
+    assert candidate_matches[0].candidate.reason == "Story Pattern: Hook -> Result"
+
+
+def test_build_delegates_to_build_matches_candidate_output() -> None:
+    builder = StoryCandidateBuilder(
+        patterns=(
+            StoryPattern(
+                name="Hook -> Result",
+                priority=1,
+                sequence=(StorySegmentType.HOOK, StorySegmentType.RESULT),
+                max_gap=0,
+                minimum_duration=4.0,
+                maximum_duration=10.0,
+            ),
+        )
+    )
+    segments = [
+        make_story_segment(1, StorySegmentType.HOOK, 0.0, 2.0),
+        make_story_segment(2, StorySegmentType.RESULT, 3.0, 6.0),
+    ]
+
+    candidates = builder.build(segments)
+    candidate_matches = builder.build_matches(segments)
+
+    assert candidates == [candidate_match.candidate for candidate_match in candidate_matches]
 
 
 def test_build_rejects_match_when_unmatched_segment_gap_exceeds_max_gap() -> None:
@@ -165,6 +219,46 @@ def test_build_removes_duplicate_candidate_windows() -> None:
     assert candidates[0].reason == "Story Pattern: Primary"
 
 
+def test_build_matches_removes_duplicate_candidate_windows() -> None:
+    builder = StoryCandidateBuilder(
+        patterns=(
+            StoryPattern(
+                name="Primary",
+                priority=1,
+                sequence=(StorySegmentType.HOOK, StorySegmentType.RESULT),
+                max_gap=0,
+                minimum_duration=1.0,
+                maximum_duration=10.0,
+            ),
+            StoryPattern(
+                name="Duplicate",
+                priority=2,
+                sequence=(StorySegmentType.QUESTION, StorySegmentType.RESULT),
+                max_gap=0,
+                minimum_duration=1.0,
+                maximum_duration=10.0,
+            ),
+        )
+    )
+
+    candidate_matches = builder.build_matches(
+        [
+            make_story_segment(
+                1,
+                StorySegmentType.HOOK,
+                0.0,
+                2.0,
+                [StorySegmentType.HOOK, StorySegmentType.QUESTION],
+            ),
+            make_story_segment(2, StorySegmentType.RESULT, 3.0, 5.0),
+        ]
+    )
+
+    assert len(candidate_matches) == 1
+    assert candidate_matches[0].match.pattern.name == "Primary"
+    assert candidate_matches[0].candidate.reason == "Story Pattern: Primary"
+
+
 def test_maximum_candidates_is_enforced_after_deduplication() -> None:
     builder = StoryCandidateBuilder(
         patterns=(
@@ -191,6 +285,34 @@ def test_maximum_candidates_is_enforced_after_deduplication() -> None:
 
     assert len(candidates) == 1
     assert candidates[0].start == 0.0
+
+
+def test_build_matches_enforces_maximum_candidates_after_deduplication() -> None:
+    builder = StoryCandidateBuilder(
+        patterns=(
+            StoryPattern(
+                name="Hook -> Result",
+                priority=1,
+                sequence=(StorySegmentType.HOOK, StorySegmentType.RESULT),
+                max_gap=0,
+                minimum_duration=1.0,
+                maximum_duration=20.0,
+            ),
+        ),
+        maximum_candidates=1,
+    )
+
+    candidate_matches = builder.build_matches(
+        [
+            make_story_segment(1, StorySegmentType.HOOK, 0.0, 1.0),
+            make_story_segment(2, StorySegmentType.RESULT, 2.0, 3.0),
+            make_story_segment(3, StorySegmentType.HOOK, 4.0, 5.0),
+            make_story_segment(4, StorySegmentType.RESULT, 6.0, 7.0),
+        ]
+    )
+
+    assert len(candidate_matches) == 1
+    assert candidate_matches[0].candidate.start == 0.0
 
 
 def test_story_pattern_rejects_invalid_configuration() -> None:
@@ -220,3 +342,9 @@ def test_build_returns_empty_list_for_empty_input() -> None:
     builder = StoryCandidateBuilder()
 
     assert builder.build([]) == []
+
+
+def test_build_matches_returns_empty_list_for_empty_input() -> None:
+    builder = StoryCandidateBuilder()
+
+    assert builder.build_matches([]) == []
