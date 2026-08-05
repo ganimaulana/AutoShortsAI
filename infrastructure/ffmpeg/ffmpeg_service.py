@@ -62,8 +62,12 @@ class FFmpegService:
             and Path(plan.subtitle_file).exists()
         ):
 
+            ass_path = Path(plan.subtitle_file).resolve().as_posix()
+
+            ass_path = ass_path.replace(":", "\\:")
+
             filters.append(
-                f"subtitles={plan.subtitle_file}"
+                f"subtitles='{ass_path}'"
             )
 
         if filters:

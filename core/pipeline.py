@@ -1,7 +1,9 @@
 from pipeline.analyze_pipeline import AnalyzePipeline
 from pipeline.base_pipeline import PipelineStep
+from pipeline.candidate_pipeline import CandidatePipeline
 from pipeline.download_pipeline import DownloadPipeline
 from pipeline.runner import PipelineRunner
+from pipeline.subtitle_pipeline import SubtitlePipeline
 from pipeline.whisper_pipeline import WhisperPipeline
 from pipeline.render_pipeline import RenderPipeline
 
@@ -26,6 +28,8 @@ def build_pipeline_runner(
         AnalyzePipeline(),
         DownloadPipeline(),
         WhisperPipeline(),
+        CandidatePipeline(),
+        SubtitlePipeline(),
         RenderPipeline(),
     )
 

@@ -3,6 +3,7 @@ from pathlib import Path
 from faster_whisper import WhisperModel
 
 from domain.job.status import JobStatus
+from domain.segment import Segment
 
 from pipeline.base_pipeline import (
     PipelineStep,
@@ -60,7 +61,7 @@ class WhisperPipeline(PipelineStep):
 
         output = []
 
-        for segment in segments:
+        for index, segment in enumerate(segments, start=1):
 
             words = []
 
@@ -96,6 +97,15 @@ class WhisperPipeline(PipelineStep):
 
                 }
 
+            )
+
+            job.manifest.transcript_segments.append(
+                Segment(
+                    id=index,
+                    start=segment.start,
+                    end=segment.end,
+                    text=segment.text,
+                )
             )
 
         transcript_dir = (
@@ -144,43 +154,6 @@ class WhisperPipeline(PipelineStep):
             )
 
         job.manifest.transcript_raw = transcript_file
-
-        #
-        # Temporary candidate
-        #
-
-        if output:
-
-            start = output[0]["start"]
-
-            end = output[-1]["end"]
-
-            #
-            # Maksimal 60 detik
-            #
-
-            end = min(
-                end,
-                start + 60,
-            )
-
-            job.metadata["approved_candidates"] = [
-
-                {
-
-                    "id": 1,
-
-                    "title": "Auto Candidate",
-
-                    "score": 100,
-
-                    "start": start,
-
-                    "end": end,
-
-                }
-
-            ]
 
         return StepResult(
 
