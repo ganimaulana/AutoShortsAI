@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -102,3 +103,31 @@ def test_candidate_pipeline_preserves_order_and_reasons() -> None:
     assert job.metadata["approved_candidates"][1]["title"] == "reason 2"
     assert job.metadata["approved_candidates"][0]["score"] == 20
     assert job.metadata["approved_candidates"][1]["score"] == 10
+
+def test_candidate_pipeline_with_transcript_fixture() -> None:
+    fixture_path = ROOT / "tests" / "fixtures" / "transcript.json"
+    with open(fixture_path, "r") as f:
+        data = json.load(f)
+    
+    segments = [Segment(id=item["id"], start=item["start"], end=item["end"], text=item["text"]) for item in data]
+    job = MagicMock(spec=Job)
+    job.manifest.transcript_segments = segments
+    job.metadata = {"USE_STORY_PIPELINE": True}
+    
+    candidate = Candidate(start=0.0, end=15.0, score=0.0, reason="test reason")
+    ranked = RankedCandidate(
+        candidate=candidate, 
+        score=CandidateScore(total_score=50.0, weighted_scores={}, penalties={}, bonuses={}), 
+        rank=1, 
+        input_index=0, 
+        tie_break_values={}
+    )
+    
+    story_pipeline = MagicMock()
+    story_pipeline.build_ranked_candidates.return_value = [ranked]
+    
+    pipeline = CandidatePipeline(story_pipeline=story_pipeline)
+    pipeline.execute(job)
+    
+    assert job.metadata["approved_candidates"][0]["title"] == "test reason"
+    assert job.metadata["approved_candidates"][0]["score"] == 50
