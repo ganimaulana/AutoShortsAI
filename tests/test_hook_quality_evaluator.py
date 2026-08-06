@@ -62,3 +62,20 @@ def test_hook_quality_evaluator_combined_score():
     )
     # HOOK=50, QUESTION=30, CONFLICT=20 => 100
     assert evaluator.evaluate([segment]) == 100.0
+
+def test_hook_quality_evaluator_realistic_story_pattern_hook_question():
+    evaluator = HookQualityEvaluator()
+    # Pattern: Hook -> Question
+    segment1 = StorySegment(id=1, primary_type=StorySegmentType.HOOK, types=[StorySegmentType.HOOK], start=0.0, end=5.0, text="Hook")
+    segment2 = StorySegment(id=2, primary_type=StorySegmentType.QUESTION, types=[StorySegmentType.QUESTION], start=5.0, end=10.0, text="Question")
+    
+    # Evaluate only first segment as per implementation
+    assert evaluator.evaluate([segment1, segment2]) == 50.0
+
+def test_hook_quality_evaluator_realistic_story_pattern_conflict():
+    evaluator = HookQualityEvaluator()
+    # Pattern: Conflict -> Solution
+    segment1 = StorySegment(id=1, primary_type=StorySegmentType.CONFLICT, types=[StorySegmentType.CONFLICT], start=0.0, end=5.0, text="Conflict")
+    segment2 = StorySegment(id=2, primary_type=StorySegmentType.SOLUTION, types=[StorySegmentType.SOLUTION], start=5.0, end=10.0, text="Solution")
+    
+    assert evaluator.evaluate([segment1, segment2]) == 20.0
