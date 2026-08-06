@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from application.story.sentence_splitter import SentenceSplitter
 from application.story.sentence_feature_extractor import SentenceFeatureExtractor
 from application.story.story_analyzer import StoryAnalyzer
@@ -41,6 +43,7 @@ class StoryPipeline:
         self.scorer = scorer
         self.ranking_engine = ranking_engine
         self.diversity_filter = diversity_filter
+        self.logger = logging.getLogger(__name__)
 
     def build_ranked_candidates(
         self,
@@ -48,14 +51,22 @@ class StoryPipeline:
         scoring_profile: ScoringProfile,
         ranking_rules: RankingRules | None = None,
         diversity_rules: DiversityRules | None = None,
+        enable_logging: bool = False,
     ) -> list[RankedCandidate]:
         
         sentences = self.splitter.split(segments)
+        if enable_logging:
+            self.logger.info("Sentences count: %d", len(sentences))
+
         features = self.sentence_feature_extractor.extract(sentences)
         story_segments = self.analyzer.analyze(features)
+        if enable_logging:
+            self.logger.info("Story segments count: %d", len(story_segments))
         
         # Build candidates
         candidate_matches = self.builder.build_matches(story_segments)
+        if enable_logging:
+            self.logger.info("Candidate matches count: %d", len(candidate_matches))
         
         # Score
         scored_candidates = []
@@ -66,10 +77,14 @@ class StoryPipeline:
         
         # Rank
         ranked_candidates = self.ranking_engine.rank(scored_candidates, ranking_rules)
+        if enable_logging:
+            self.logger.info("Ranked candidates count: %d", len(ranked_candidates))
         
         # Filter
         if diversity_rules is None:
             diversity_rules = DEFAULT_DIVERSITY_RULES
         final_candidates = self.diversity_filter.filter(ranked_candidates, diversity_rules)
+        if enable_logging:
+            self.logger.info("Final candidates count: %d", len(final_candidates))
         
         return final_candidates

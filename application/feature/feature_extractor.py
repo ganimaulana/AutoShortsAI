@@ -4,6 +4,7 @@ import logging
 
 from application.candidate.story_candidate_builder import StoryPatternMatch
 from application.feature import feature_rules
+from application.story.hook_quality_evaluator import HookQualityEvaluator
 from domain.feature_vector import FeatureVector
 from domain.story_intelligence import StorySegmentType
 
@@ -12,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 class FeatureExtractor:
     """Extracts deterministic feature vectors from story pattern matches."""
+
+    def __init__(self) -> None:
+        self.hook_evaluator = HookQualityEvaluator()
 
     def extract(self, match: StoryPatternMatch) -> FeatureVector:
         text = " ".join(
@@ -23,6 +27,8 @@ class FeatureExtractor:
         tokens = feature_rules.TOKEN_PATTERN.findall(lower_text)
         duration = self._duration(match)
         coverage = self._coverage(match)
+        
+        hook_quality = self.hook_evaluator.evaluate(list(match.matched_segments))
 
         logger.debug(
             "Extracting features for pattern '%s' with %d matched segments.",
@@ -44,6 +50,7 @@ class FeatureExtractor:
             cta=self._cta(lower_text),
             duration=duration,
             coverage=coverage,
+            hook_quality=hook_quality / 100.0,
         )
 
     def _hook_strength(

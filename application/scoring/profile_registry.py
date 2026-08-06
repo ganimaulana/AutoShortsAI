@@ -32,9 +32,15 @@ DEFAULT_PROFILES: tuple[ScoringProfile, ...] = (
                 FeatureName.CTA: 0.02,
                 FeatureName.DURATION: 0.03,
                 FeatureName.COVERAGE: 0.05,
+                FeatureName.HOOK_QUALITY: 0.0,
             }
         ),
         bonus_rules=(
+            BonusRule(
+                name="high_hook_quality",
+                conditions=(RuleCondition(FeatureName.HOOK_QUALITY, RuleOperator.GTE, 0.7),),
+                points=3.0,
+            ),
             BonusRule(
                 name="high_curiosity",
                 conditions=(RuleCondition(FeatureName.CURIOSITY, RuleOperator.GTE, 0.8),),
@@ -78,9 +84,15 @@ DEFAULT_PROFILES: tuple[ScoringProfile, ...] = (
                 FeatureName.CTA: 0.01,
                 FeatureName.DURATION: 0.03,
                 FeatureName.COVERAGE: 0.03,
+                FeatureName.HOOK_QUALITY: 0.0,
             }
         ),
         bonus_rules=(
+            BonusRule(
+                name="high_hook_quality",
+                conditions=(RuleCondition(FeatureName.HOOK_QUALITY, RuleOperator.GTE, 0.7),),
+                points=3.0,
+            ),
             BonusRule(
                 name="hook_curiosity_synergy",
                 conditions=(
@@ -120,9 +132,15 @@ DEFAULT_PROFILES: tuple[ScoringProfile, ...] = (
                 FeatureName.CTA: 0.02,
                 FeatureName.DURATION: 0.03,
                 FeatureName.COVERAGE: 0.04,
+                FeatureName.HOOK_QUALITY: 0.0,
             }
         ),
         bonus_rules=(
+            BonusRule(
+                name="high_hook_quality",
+                conditions=(RuleCondition(FeatureName.HOOK_QUALITY, RuleOperator.GTE, 0.7),),
+                points=3.0,
+            ),
             BonusRule(
                 name="strong_conversation",
                 conditions=(
@@ -157,9 +175,15 @@ DEFAULT_PROFILES: tuple[ScoringProfile, ...] = (
                 FeatureName.CTA: 0.01,
                 FeatureName.DURATION: 0.02,
                 FeatureName.COVERAGE: 0.03,
+                FeatureName.HOOK_QUALITY: 0.0,
             }
         ),
         bonus_rules=(
+            BonusRule(
+                name="high_hook_quality",
+                conditions=(RuleCondition(FeatureName.HOOK_QUALITY, RuleOperator.GTE, 0.7),),
+                points=3.0,
+            ),
             BonusRule(
                 name="high_novelty",
                 conditions=(RuleCondition(FeatureName.NOVELTY, RuleOperator.GTE, 0.8),),

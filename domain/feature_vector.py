@@ -18,6 +18,7 @@ class FeatureName(str, Enum):
     CTA = "cta"
     DURATION = "duration"
     COVERAGE = "coverage"
+    HOOK_QUALITY = "hook_quality"
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,6 +38,7 @@ class FeatureVector:
     cta: float
     duration: float
     coverage: float
+    hook_quality: float
 
     def get(self, feature: FeatureName) -> float:
         if not isinstance(feature, FeatureName):
