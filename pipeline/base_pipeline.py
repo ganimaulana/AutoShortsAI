@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from time import perf_counter
 
 from domain.job.job import Job
 from domain.job.status import JobStatus
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -68,6 +71,13 @@ class PipelineStep(ABC):
             return result
 
         except Exception as e:
+
+            logger.error(
+                "Pipeline step '%s' failed: %s",
+                self.__class__.__name__,
+                e,
+                exc_info=True,
+            )
 
             return StepResult(
 

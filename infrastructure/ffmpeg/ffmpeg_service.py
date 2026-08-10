@@ -122,6 +122,13 @@ class FFmpegService:
         subprocess.run(
             command,
             check=True,
+            # Redirect std streams so FFmpeg never inherits invalid GUI
+            # standard handles on Windows. A PySide6 app launched without a
+            # console exposes invalid stdin/stdout/stderr handles; passing
+            # them to CreateProcess raises OSError [Errno 22] Invalid argument.
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
         return plan.output_video
